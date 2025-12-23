@@ -2,18 +2,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Kullanıcı Profilini Her Sayfada Yükle
     await loadUserProfile();
 
-    // 2. Sayfaya Göre İşlem Yap
+    // 2. Sayfaya Göre İşlem Yap (Dashboard)
     if (document.getElementById('saved-playlists')) {
-        // Eğer Dashboard sayfasındaysak playlistleri yükle
         await loadSavedPlaylists();
     }
     
+    // 3. Sayfaya Göre İşlem Yap (Stats Sayfası)
+    // Eğer 'stats-content' ID'li kutu varsa burası Stats sayfasıdır.
     if (document.getElementById('stats-content')) {
-        // Eğer Stats sayfasındaysak istatistikleri yükle
+        console.log("Stats sayfası algılandı, veriler çekiliyor...");
         await loadStats();
     }
 
-    // 3. Buton Tanımlamaları (Dashboard)
+    // 4. Buton Tanımlamaları
     const generateBtn = document.getElementById('generate-button');
     const cameraBtn = document.getElementById('camera-button');
     const goBackBtn = document.getElementById('go-back-button');
@@ -60,17 +61,22 @@ async function loadUserProfile() {
             });
             document.querySelectorAll('#user-avatar-placeholder').forEach(el => el.style.display = 'none');
         }
-    } catch(e) { console.log("Profil yüklenemedi:", e); }
+    } catch(e) { console.error("Profil hatası:", e); }
 }
 
 async function loadSavedPlaylists() {
     const list = document.getElementById('saved-playlists');
+    if (!list) return; // Hata koruması
+
     try {
         const res = await fetch('/api/my-playlists');
         const data = await res.json();
         list.innerHTML = '';
         
-        if (data.length === 0) list.innerHTML = '<li><span style="color:#777; font-size:12px;">No playlists yet.</span></li>';
+        if (!data || data.length === 0) {
+            list.innerHTML = '<li><span style="color:#777; font-size:12px;">No playlists yet.</span></li>';
+            return;
+        }
 
         data.forEach(pl => {
             const li = document.createElement('li');
@@ -82,53 +88,74 @@ async function loadSavedPlaylists() {
                 </a>`;
             list.appendChild(li);
         });
-    } catch(e) { console.log(e); }
+    } catch(e) { console.error("Playlist hatası:", e); }
 }
 
+// --- STATS YÜKLEME FONKSİYONU (DÜZELTİLDİ) ---
 async function loadStats() {
     try {
         const res = await fetch('/api/stats');
         const data = await res.json();
         
-        if (data.error) return;
+        if (data.error) {
+            console.error("Stats API Hatası:", data.error);
+            document.getElementById('loading-stats').innerHTML = `<p style="color:red">Veri alınamadı: ${data.error}</p>`;
+            return;
+        }
+
+        console.log("Stats Verisi Geldi:", data);
 
         // Şarkıları Listele
         const tracksList = document.getElementById('tracks-list');
         tracksList.innerHTML = '';
-        data.tracks.forEach((t, i) => {
-            const img = t.album.images[0]?.url || '';
-            const html = `
-                <a href="${t.external_urls.spotify}" target="_blank" class="list-item">
-                    <div class="rank">${i + 1}</div>
-                    <img src="${img}" alt="art">
-                    <div class="info">
-                        <span class="title">${t.name}</span>
-                        <span class="artist">${t.artists[0].name}</span>
-                    </div>
-                </a>`;
-            tracksList.innerHTML += html;
-        });
+        
+        if (data.tracks && data.tracks.length > 0) {
+            data.tracks.forEach((t, i) => {
+                const img = t.album.images[0]?.url || '';
+                const html = `
+                    <a href="${t.external_urls.spotify}" target="_blank" class="list-item">
+                        <div class="rank">${i + 1}</div>
+                        <img src="${img}" alt="art">
+                        <div class="info">
+                            <span class="title">${t.name}</span>
+                            <span class="artist">${t.artists[0].name}</span>
+                        </div>
+                    </a>`;
+                tracksList.innerHTML += html;
+            });
+        } else {
+            tracksList.innerHTML = '<p style="color:#777; padding:10px;">Henüz yeterli veri yok.</p>';
+        }
 
         // Sanatçıları Listele
         const artistsList = document.getElementById('artists-list');
         artistsList.innerHTML = '';
-        data.artists.forEach((a, i) => {
-            const img = a.images[0]?.url || '';
-            const html = `
-                <a href="${a.external_urls.spotify}" target="_blank" class="list-item">
-                    <div class="rank">${i + 1}</div>
-                    <img src="${img}" alt="artist" style="border-radius:50%;">
-                    <div class="info">
-                        <span class="title">${a.name}</span>
-                    </div>
-                </a>`;
-            artistsList.innerHTML += html;
-        });
 
+        if (data.artists && data.artists.length > 0) {
+            data.artists.forEach((a, i) => {
+                const img = a.images[0]?.url || '';
+                const html = `
+                    <a href="${a.external_urls.spotify}" target="_blank" class="list-item">
+                        <div class="rank">${i + 1}</div>
+                        <img src="${img}" alt="artist" style="border-radius:50%;">
+                        <div class="info">
+                            <span class="title">${a.name}</span>
+                        </div>
+                    </a>`;
+                artistsList.innerHTML += html;
+            });
+        } else {
+            artistsList.innerHTML = '<p style="color:#777; padding:10px;">Henüz yeterli veri yok.</p>';
+        }
+
+        // Yükleme ekranını gizle, içeriği göster
         document.getElementById('loading-stats').style.display = 'none';
         document.getElementById('stats-content').style.display = 'flex';
 
-    } catch(e) { console.log("Stats yüklenemedi:", e); }
+    } catch(e) { 
+        console.error("Stats yüklenemedi:", e); 
+        document.getElementById('loading-stats').innerHTML = `<p style="color:red">Sunucu hatası.</p>`;
+    }
 }
 
 async function generateMelody() {

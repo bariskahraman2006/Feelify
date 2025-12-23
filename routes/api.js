@@ -1,4 +1,4 @@
-// Dosya: routes/api.js
+// Dosya: routes/api.js (GÜNCEL - STATS FIX & SMART MELODY)
 const express = require('express');
 const router = express.Router();
 const SpotifyWebApi = require('spotify-web-api-node');
@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
         spotifyApi.setAccessToken(accessToken);
         const me = await spotifyApi.getMe();
 
-        // Veritabanına Kaydet
+        // Veritabanına Kaydet (feelifyDB'ye yazar)
         await User.findOneAndUpdate(
             { 'spotifyData.spotifyUserId': me.body.id },
             {
@@ -95,18 +95,31 @@ router.get('/my-playlists', async (req, res) => {
     res.json(lists);
 });
 
-// --- İSTATİSTİKLER ---
+// --- İSTATİSTİKLER (GÜNCELLENDİ VE DÜZELTİLDİ) ---
 router.get('/stats', async (req, res) => {
     const client = await getSpotifyClient(req, res);
+    
+    // Oturum kontrolü
     if (!client) return res.status(401).json({ error: 'Giriş yok' });
+
     try {
+        // Hem Top Tracks hem Top Artists çekiyoruz
         const tracks = await client.api.getMyTopTracks({ limit: 10, time_range: 'short_term' });
         const artists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
-        res.json({ tracks: tracks.body.items, artists: artists.body.items });
-    } catch (e) { res.status(500).json({ error: 'Veri yok' }); }
+        
+        // JSON olarak dönüyoruz
+        res.json({ 
+            tracks: tracks.body.items, 
+            artists: artists.body.items 
+        });
+        
+    } catch (e) { 
+        console.error("Stats API Hatası:", e);
+        res.status(500).json({ error: 'Veri çekilemedi. Spotify izni eksik olabilir.' }); 
+    }
 });
 
-// --- MELODİ OLUŞTURMA (PYTHON MANTIĞI İLE GÜÇLENDİRİLMİŞ) ---
+// --- MELODİ OLUŞTURMA (GELİŞMİŞ SANATÇI MODU) ---
 router.post('/generate-melody', async (req, res) => {
     const { feeling_text } = req.body;
     const client = await getSpotifyClient(req, res);
@@ -117,8 +130,10 @@ router.post('/generate-melody', async (req, res) => {
         
         // 1. ADIM: Sevilen Sanatçıları Bul
         let myArtists = [];
-        const topArtistsData = await client.api.getMyTopArtists({ limit: 10, time_range: 'medium_term' });
-        myArtists = topArtistsData.body.items.map(a => a.name);
+        try {
+            const topArtistsData = await client.api.getMyTopArtists({ limit: 10, time_range: 'medium_term' });
+            myArtists = topArtistsData.body.items.map(a => a.name);
+        } catch (e) { console.log("Sanatçı verisi alınamadı, yedekler kullanılıyor."); }
 
         if (myArtists.length === 0) myArtists = ["The Weeknd", "Coldplay", "Arctic Monkeys"]; // Yedek
 

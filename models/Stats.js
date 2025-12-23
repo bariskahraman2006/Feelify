@@ -34,8 +34,7 @@ const StatsSchema = new Schema({
         required: true
     },
     // Spotify API'sinde 'time_range' parametresi (short_term, medium_term, long_term)
-    // Sizin durumunuzda burası hep 'short_term' (4 hafta) verisi olacak ama 
-    // ileride yıllık özet isterseniz diye bu alanı tutmak iyidir.
+    // yıllık özet istersek diye bu alanı tutalım.
     timeRange: { 
         type: String, 
         default: 'short_term', // Spotify API karşılığı: Last 4 weeks
@@ -49,7 +48,7 @@ const StatsSchema = new Schema({
     }
 });
 
-// Aynı kullanıcı için aynı hafta birden fazla kayıt oluşmasını engellemek isterseniz:
+// Aynı kullanıcı için aynı hafta birden fazla kayıt oluşmasını engellemek istersek diye:
 // StatsSchema.index({ userId: 1, weekStartDate: 1 }, { unique: true });
 
 module.exports = mongoose.model('Stats', StatsSchema, 'Stats');
