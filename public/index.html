@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feelify - Your AI Playlist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
+  </head>
+  <body>
+    <div class="container">
+      <aside class="left-sidebar">
+        <div class="logo-area">
+          <div class="logo">Feel<span class="logo-accent">ify</span></div>
+          <div class="slogan">Your feelings, your melody.</div>
+        </div>
+        <div class="playlist-section">
+          <h2>Your Creations</h2>
+          <ul id="saved-playlists">
+            <li><span style="color:#b3b3b3; font-size:12px;">Loading playlists...</span></li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <div class="prompt-bar-container">
+          <h1>What's on your mind?</h1>
+
+          <div class="prompt-input-wrapper" id="prompt-input-wrapper">
+            <textarea id="mood-prompt" placeholder="Write about how you feel, what you've been doing..."></textarea>
+            <button id="camera-button" title="Capture your current mood"><i class="fas fa-camera"></i></button>
+          </div>
+
+          <div id="camera-feed-container" style="display:none;">
+             <button id="go-back-button" class="go-back-button"><i class="fas fa-arrow-left"></i> Back</button>
+             <video id="video-feed" autoplay playsinline></video>
+             <button id="capture-mood-button" class="btn-pill" style="position:absolute; bottom:20px; z-index:100; width:auto; padding:10px 30px;">CAPTURE EMOTION</button>
+          </div>
+
+          <button id="generate-button">Generate My Melody</button>
+        </div>
+
+        <section class="ai-playlist-area">
+          <h2>Your Current Vibe Playlist</h2>
+          <div id="playlist-results">
+            <div class="placeholder-card">
+              <p>Your custom playlist will appear here after you write your feelings.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="right-sidebar">
+        <div class="user-profile">
+            <img src="" alt="User" class="avatar" id="user-avatar" style="display:none;"/>
+            <div class="avatar" id="user-avatar-placeholder" style="background:#333; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-user" style="color:#1ed760; font-size:30px"></i>
+            </div>
+            <h3 id="user-name">Loading...</h3>
+        </div>
+        <nav class="user-nav">
+          <ul>
+            <li><a href="/stats">Spotify Stats</a></li>
+            <li><a href="#">Account Settings</a></li>
+            <li><a href="#">Help & Support</a></li>
+            <li><a href="/logout" style="color:#ff5555">Log Out</a></li>
+          </ul>
+        </nav>
+      </aside>
+    </div>
+    <script src="js/app.js"></script>
+  </body>
+</html>

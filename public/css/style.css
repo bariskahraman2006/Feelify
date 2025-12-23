@@ -1,0 +1,336 @@
+/* Import a modern, clean font like Montserrat (already in HTML head) */
+
+:root {
+    /* Spotify-like color palette */
+    --color-primary-dark: #121212; /* Main background */
+    --color-secondary-dark: #1e1e1e; /* Sidebar background */
+    --color-text-light: #ffffff; /* White text */
+    --color-text-faded: #b3b3b3; /* Gray text */
+    --color-accent-green: #1ed760; /* Spotify Green/Accent - biraz daha canlı */
+    --color-hover-gray: #282828; /* Hover color for elements */
+    --color-button-bg: #2a2a2a; /* Yeni buton arka planı */
+    --color-danger: #ff4d4d; /* Çıkış butonu için kırmızı */
+    
+    --color-gradient-start: #111; /* Canlı arka plan başlangıcı */
+    --color-gradient-end: #0a0a0a; /* Canlı arka plan bitişi */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    /* *************************************** */
+    /* HAREKETLİ ARKA PLAN BAŞLANGICI */
+    background: linear-gradient(-45deg, #000000, #1e1e1e, #0a0a0a, var(--color-accent-green), #000000);
+    background-size: 400% 400%; 
+    animation: gradientAnimation 20s ease infinite; 
+    /* *************************************** */
+    
+    color: var(--color-text-light);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- Container Layout (Flexbox for the 3 Columns) --- */
+.container {
+    display: flex;
+    height: 95vh; 
+    width: 90%; 
+    max-width: 1400px; 
+    border-radius: 15px; 
+    overflow: hidden; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
+}
+
+/* --- Left Sidebar (Saved Playlists) --- */
+.left-sidebar {
+    width: 280px; 
+    background-color: var(--color-secondary-dark);
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-hover-gray);
+    overflow-y: auto; 
+}
+
+.logo-area {
+    padding-bottom: 25px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--color-hover-gray);
+    text-align: center; 
+}
+
+.logo {
+    font-size: 28px; 
+    font-weight: 900; 
+    letter-spacing: -1px; 
+}
+
+.logo-accent {
+    color: var(--color-accent-green);
+}
+
+.slogan {
+    font-size: 13px;
+    color: var(--color-text-faded);
+    margin-top: 8px;
+    font-weight: 400;
+}
+
+.playlist-section h2 {
+    font-size: 17px;
+    color: var(--color-text-light);
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.playlist-section ul {
+    list-style: none;
+}
+
+.playlist-section li a {
+    display: flex; 
+    align-items: center; 
+    padding: 10px 0;
+    color: var(--color-text-faded);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.playlist-section li a:hover {
+    color: var(--color-text-light);
+    transform: translateX(5px); 
+}
+
+.playlist-thumbnail {
+    width: 70px; 
+    height: 70px;
+    border-radius: 8px; 
+    margin-right: 15px;
+    background-color: var(--color-hover-gray); 
+    background-size: cover; 
+    background-position: center; 
+    flex-shrink: 0; 
+}
+
+/* --- Main Content (Prompt and Playlist) --- */
+.main-content {
+    flex-grow: 1;
+    padding: 40px;
+    overflow-y: auto;
+    display: flex; 
+    flex-direction: column;
+    align-items: center; 
+}
+
+/* Prompt Bar */
+.prompt-bar-container {
+    background-color: var(--color-secondary-dark);
+    padding: 40px; 
+    border-radius: 15px;
+    margin-bottom: 50px; 
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7); 
+    width: 100%; 
+    max-width: 700px; 
+    text-align: center; 
+}
+
+.prompt-bar-container h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.prompt-input-wrapper {
+    display: flex;
+    gap: 10px; 
+    align-items: flex-end; 
+}
+
+#mood-prompt {
+    width: 100%; 
+    flex-grow: 1; 
+    height: 180px;
+    padding: 18px;
+    border: 2px solid var(--color-hover-gray);
+    border-radius: 10px;
+    background-color: #000000;
+    color: var(--color-text-light);
+    font-size: 17px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Montserrat', sans-serif;
+}
+
+#mood-prompt:focus {
+    border-color: var(--color-accent-green);
+    box-shadow: 0 0 0 3px rgba(30, 215, 96, 0.4); 
+}
+
+#camera-button {
+    height: 180px; 
+    width: 60px; 
+    padding: 0;
+    background-color: var(--color-secondary-dark); 
+    color: var(--color-accent-green); 
+    border: 2px solid var(--color-hover-gray);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    flex-shrink: 0; 
+    font-size: 24px; 
+}
+
+#camera-button:hover {
+    background-color: var(--color-hover-gray);
+    border-color: var(--color-accent-green);
+    color: var(--color-text-light);
+}
+
+#generate-button {
+    margin-top: 20px;
+    padding: 14px 30px; 
+    background-color: var(--color-accent-green);
+    color: var(--color-primary-dark);
+    border: none;
+    border-radius: 500px; /* Pill shape */
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.5px;
+}
+
+#generate-button:hover {
+    background-color: #1ed760; 
+    transform: scale(1.03); 
+    box-shadow: 0 0 15px rgba(30, 215, 96, 0.5); 
+}
+
+/* AI Playlist Area */
+.ai-playlist-area {
+    width: 100%;
+    max-width: 700px; 
+}
+
+.ai-playlist-area h2 {
+    font-size: 22px;
+    margin-bottom: 25px;
+    color: var(--color-text-light);
+    font-weight: 700;
+    text-align: center;
+}
+
+.placeholder-card {
+    background-color: var(--color-secondary-dark);
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    color: var(--color-text-faded);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.placeholder-card p:first-child {
+    font-weight: 700;
+    color: var(--color-accent-green);
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+/* --- Right Sidebar (User Settings) - GÜNCELLENEN KISIM --- */
+.right-sidebar {
+    width: 250px;
+    background-color: var(--color-secondary-dark);
+    padding: 25px;
+    text-align: center;
+    border-left: 1px solid var(--color-hover-gray);
+    overflow-y: auto; 
+}
+
+.user-profile {
+    padding-bottom: 25px;
+    margin-bottom: 30px; /* Butonlara mesafe açıldı */
+    border-bottom: 1px solid var(--color-hover-gray);
+}
+
+.avatar {
+    width: 85px; 
+    height: 85px;
+    border-radius: 50%;
+    border: 3px solid var(--color-accent-green); 
+    object-fit: cover; 
+    margin-bottom: 12px;
+}
+
+.user-profile h3 {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.user-nav ul {
+    list-style: none;
+    /* text-align: left; KALDILDI - Butonlar ortalansın */
+}
+
+/* LİSTE ÖĞELERİ (BUTON GİBİ GÖRÜNMESİ İÇİN) */
+.user-nav li {
+    margin-bottom: 15px; /* Butonlar arası boşluk */
+}
+
+/* GENEL MENÜ BUTONLARI */
+.user-nav li a {
+    display: block; /* Kutucuk yapısı */
+    width: 100%;
+    padding: 12px 0; /* İç dolgu */
+    background-color: var(--color-button-bg); /* Koyu gri buton arka planı */
+    color: var(--color-text-light); /* Beyaz yazı */
+    text-align: center; /* Yazıyı ortala */
+    text-decoration: none;
+    font-weight: 600; /* Kalın font */
+    border-radius: 50px; /* HAP ŞEKLİ (Generate butonu gibi) */
+    border: 2px solid transparent; /* Kenarlık için yer tut */
+    transition: all 0.3s ease; /* Yumuşak geçiş */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* MENÜ BUTONLARI HOVER (ÜZERİNE GELİNCE) */
+.user-nav li a:hover {
+    background-color: #383838; /* Hafif aydınlanma */
+    color: var(--color-accent-green); /* Yeşil yazı */
+    border-color: var(--color-accent-green); /* Yeşil çerçeve */
+    box-shadow: 0 0 10px rgba(30, 215, 96, 0.3); /* Hafif neon parlama */
+    transform: translateY(-2px); /* Hafif yukarı kalkma */
+}
+
+/* LOG OUT (ÇIKIŞ) BUTONU ÖZEL AYARI */
+/* Listenin son elemanını yakalar */
+.user-nav li:last-child {
+    margin-top: 50px; /* Diğerlerinden çok daha aşağıda dursun */
+}
+
+.user-nav li:last-child a:hover {
+    color: var(--color-danger); /* Kırmızı yazı */
+    border-color: var(--color-danger); /* Kırmızı çerçeve */
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.4); /* Kırmızı parlama */
+}
+
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%; 
+    }
+    50% {
+        background-position: 100% 50%; 
+    }
+    100% {
+        background-position: 0% 50%; 
+    }
+}

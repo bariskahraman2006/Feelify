@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feelify - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='login-style.css') }}"> 
+    
+    <style>
+        .dashboard-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--color-secondary-dark);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        .user-welcome { font-size: 24px; margin-bottom: 30px; }
+        .mood-input {
+            width: 100%; padding: 15px; border-radius: 10px;
+            border: 2px solid #333; background-color: #121212;
+            color: white; font-family: 'Montserrat', sans-serif;
+            margin-bottom: 20px; resize: none; height: 120px;
+        }
+        .mood-input:focus { outline: none; border-color: var(--color-accent-green); }
+        .generate-btn {
+            background-color: var(--color-accent-green); color: black;
+            padding: 15px 40px; border: none; border-radius: 50px;
+            font-weight: 900; font-size: 16px; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .generate-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(30, 215, 96, 0.4); }
+        .logout-link { display: block; margin-top: 30px; color: #b3b3b3; text-decoration: none; font-size: 14px; }
+        .logout-link:hover { color: white; }
+        .profile-pic {
+            width: 80px; height: 80px; border-radius: 50%;
+            margin-bottom: 20px; border: 3px solid var(--color-accent-green);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        {% if user_image %}
+            <img src="{{ user_image }}" alt="Profil" class="profile-pic">
+        {% else %}
+            <div class="profile-pic" style="background-color: #333; display: inline-block; line-height: 80px;">
+                <i class="fas fa-user"></i>
+            </div>
+        {% endif %}
+
+        <h1 class="user-welcome">Hoşgeldin, <span style="color:var(--color-accent-green)">{{ user_name }}</span>! 🤘</h1>
+        <p style="margin-bottom: 20px; color: #b3b3b3;">Bugün nasıl hissediyorsun?</p>
+        
+        <form action="/generate" method="POST">
+            <textarea name="mood" class="mood-input" placeholder="Örn: Çok enerjik hissediyorum, spora gideceğim..."></textarea>
+            <br>
+            <button type="submit" class="generate-btn"><i class="fas fa-magic"></i> Playlist Oluştur</button>
+        </form>
+        <a href="/logout" class="logout-link">Çıkış Yap</a>
+    </div>
+</body>
+</html>

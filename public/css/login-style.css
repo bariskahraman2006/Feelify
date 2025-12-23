@@ -1,0 +1,155 @@
+:root {
+  --color-primary-dark: #121212;
+  --color-secondary-dark: #1e1e1e;
+  --color-text-light: #ffffff;
+  --color-text-faded: #b3b3b3;
+  --color-accent-green: #1ed760;
+  --color-hover-gray: #282828;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  /* hareketli arka plan */
+  background: linear-gradient(
+    -45deg,
+    #000000,
+    #1e1e1e,
+    #0a0a0a,
+    var(--color-accent-green),
+    #000000
+  );
+  background-size: 400% 400%;
+  animation: gradientAnimation 20s ease infinite;
+  color: var(--color-text-light);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* giriş */
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  background-color: var(--color-secondary-dark);
+  padding: 40px 35px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.logo-area {
+  margin-bottom: 35px;
+  
+  /* gecikmeli giriş */
+  animation: fadeInUp 0.8s ease-out 0.3s backwards;
+}
+
+.logo {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.logo-accent {
+  color: var(--color-accent-green);
+  
+  /* yanıp sönme efekti */
+  animation: breathingGlow 3s ease-in-out infinite;
+}
+
+.slogan {
+  font-size: 14px;
+  color: var(--color-text-faded);
+  margin-top: 8px;
+  font-weight: 400;
+}
+
+.spotify-login-only {
+  /* gecikmeli giriş  */
+  animation: fadeInUp 0.8s ease-out 0.6s backwards;
+}
+
+#spotify-login-button {
+  display: block; 
+  text-decoration: none; 
+  width: 100%;
+  padding: 14px 30px;
+  background-color: transparent;
+  color: var(--color-text-light);
+  border: 2px solid var(--color-hover-gray);
+  border-radius: 500px;
+  font-weight: 700;
+  cursor: pointer;
+  
+  /* box shadow */
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  
+  font-size: 16px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+#spotify-login-button:hover {
+  background-color: var(--color-hover-gray);
+  border-color: var(--color-accent-green);
+  
+  /* buton çevresi parlama */
+  box-shadow: 0 0 15px 0 rgba(30, 215, 96, 0.6);
+}
+
+#spotify-login-button i {
+  margin-right: 10px;
+  color: var(--color-accent-green);
+  font-size: 18px;
+}
+
+.login-note {
+  margin-top: 25px;
+  font-size: 14px;
+  color: var(--color-text-faded);
+  line-height: 1.5;
+}
+/* arka plan */
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* hareketli arkaplan */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* yanıp sönme efekt */
+@keyframes breathingGlow {
+  0% {
+    text-shadow: 0 0 5px rgba(30, 215, 96, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(30, 215, 96, 0.8);
+  }
+  100% {
+    text-shadow: 0 0 5px rgba(30, 215, 96, 0.2);
+  }
+}
