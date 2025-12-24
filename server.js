@@ -43,8 +43,16 @@ app.get('/login', (req, res) => {
         clientSecret: process.env.SPOTIPY_CLIENT_SECRET,
         redirectUri: process.env.SPOTIPY_REDIRECT_URI
     });
-    // İzinler
-    const scopes = ['user-library-read', 'playlist-modify-public', 'playlist-read-private', 'user-read-private', 'user-top-read'];
+// --- BURASI GÜNCELLENDİ: 'user-read-email' EKLENDİ ---
+    const scopes = [
+        'user-read-email', // <--- EKLENEN KISIM BU
+        'user-library-read', 
+        'playlist-modify-public', 
+        'playlist-read-private', 
+        'user-read-private', 
+        'user-top-read'
+    ];
+    
     res.redirect(spotifyApi.createAuthorizeURL(scopes));
 });
 

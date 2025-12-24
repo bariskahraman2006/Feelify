@@ -1,4 +1,4 @@
-// Dosya: routes/api.js (GÜNCEL - STATS FIX & SMART MELODY)
+// Dosya: routes/api.js (HATA GÖSTEREN VERSİYON)
 const express = require('express');
 const router = express.Router();
 const SpotifyWebApi = require('spotify-web-api-node');
@@ -72,8 +72,19 @@ router.get('/', async (req, res) => {
         res.cookie('access_token', accessToken, { maxAge: 3600000 });
         
         res.redirect('/');
+
     } catch (err) {
-        res.redirect('/login.html');
+        // --- BURASI GÜNCELLENDİ: Sessizce yönlendirmek yerine hatayı gösteriyoruz ---
+        console.error("GİRİŞ HATASI DETAYI:", err);
+        console.error("Hata Mesajı:", err.message);
+        
+        // Tarayıcı ekranına hatayı bas (Böylece ne olduğunu görürsün)
+        res.status(500).send(`
+            <h1>Giriş Başarısız Oldu!</h1>
+            <p><strong>Hata Mesajı:</strong> ${err.message}</p>
+            <p>Lütfen terminaldeki logları kontrol edin veya Spotify Developer Dashboard'da e-postanızın ekli olduğundan emin olun.</p>
+            <a href="/login">Tekrar Dene</a>
+        `);
     }
 });
 
@@ -95,7 +106,7 @@ router.get('/my-playlists', async (req, res) => {
     res.json(lists);
 });
 
-// --- İSTATİSTİKLER (GÜNCELLENDİ VE DÜZELTİLDİ) ---
+// --- İSTATİSTİKLER ---
 router.get('/stats', async (req, res) => {
     const client = await getSpotifyClient(req, res);
     
@@ -119,7 +130,7 @@ router.get('/stats', async (req, res) => {
     }
 });
 
-// --- MELODİ OLUŞTURMA (GELİŞMİŞ SANATÇI MODU) ---
+// --- MELODİ OLUŞTURMA ---
 router.post('/generate-melody', async (req, res) => {
     const { feeling_text } = req.body;
     const client = await getSpotifyClient(req, res);
@@ -155,13 +166,11 @@ router.post('/generate-melody', async (req, res) => {
             moodName = "Chill Mode";
         }
 
-        // 3. ADIM: Arama Yap (Her sanatçı için rastgele bir mood kelimesi ile)
+        // 3. ADIM: Arama Yap
         let finalTracks = [];
-        
-        // Sanatçıları karıştır
         myArtists.sort(() => 0.5 - Math.random());
 
-        for (let artist of myArtists.slice(0, 5)) { // İlk 5 sanatçıyı dene
+        for (let artist of myArtists.slice(0, 5)) {
             const keyword = keywords[Math.floor(Math.random() * keywords.length)];
             const query = `artist:"${artist}" ${keyword}`;
             
@@ -170,20 +179,17 @@ router.post('/generate-melody', async (req, res) => {
                 if (searchRes.body.tracks.items.length > 0) {
                     finalTracks.push(...searchRes.body.tracks.items);
                 } else {
-                    // Bulamazsa sadece sanatçı adı ile ara
                     const fallback = await client.api.searchTracks(`artist:"${artist}"`, { limit: 1 });
                     if (fallback.body.tracks.items.length > 0) finalTracks.push(fallback.body.tracks.items[0]);
                 }
             } catch (e) { console.log("Arama hatası:", e.message); }
         }
 
-        // Eğer yeterli şarkı çıkmazsa genel arama yap
         if (finalTracks.length < 5) {
             const generalRes = await client.api.searchTracks(text, { limit: 10 });
             finalTracks.push(...generalRes.body.tracks.items);
         }
 
-        // Benzersiz yap ve URI'leri al
         const trackUris = [...new Set(finalTracks.map(t => t.uri))];
 
         // 4. ADIM: Playlist Oluştur
