@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Feelify - My Stats</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Courier+New:wght@700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    
+    <link rel="stylesheet" href="css/style.css" /> 
     <link rel="stylesheet" href="css/stats-style.css" />
   </head>
   <body>
@@ -20,13 +21,25 @@
         </div>
         
         <div class="menu-section">
-            <h3 style="color:white; margin-top:30px;">MENU</h3>
+            <h3 style="color:white; margin-bottom:15px; font-size:14px;">MENU</h3>
             <ul style="list-style:none; padding:0;">
-                <li style="margin-bottom:15px;">
-                    <a href="/" style="color:#b3b3b3; text-decoration:none; display:flex; align-items:center;">
-                        <i class="fas fa-home" style="margin-right:10px;"></i> Dashboard
+                <li style="margin-bottom:10px;">
+                    <a href="#" class="menu-link active">
+                        <i class="fas fa-chart-bar"></i> Spotify Stats
                     </a>
                 </li>
+                <li style="margin-bottom:10px;">
+                    <a href="/" class="menu-link">
+                        <i class="fas fa-home"></i> Main Menu
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="playlist-section" style="margin-top:30px; border-top:1px solid #333; padding-top:20px;">
+            <h3 style="color:white; margin-bottom:15px; font-size:14px;">Your Creations</h3>
+            <ul id="saved-playlists">
+                <li><span style="color:#b3b3b3; font-size:12px;">Loading playlists...</span></li>
             </ul>
         </div>
       </aside>
@@ -44,29 +57,26 @@
         <div class="stats-grid" id="stats-content" style="display:none;">
             <div class="stat-card">
                 <h3>Top 10 Songs</h3>
-                <div class="list-container" id="tracks-list">
-                    </div>
+                <div class="list-container" id="tracks-list"></div>
             </div>
 
             <div class="stat-card">
                 <h3>Top 10 Artists</h3>
-                <div class="list-container" id="artists-list">
-                    </div>
+                <div class="list-container" id="artists-list"></div>
             </div>
         </div>
       </main>
 
       <aside class="sidebar-right">
-        <div class="profile-area">
+        <div class="user-profile">
             <img src="" alt="Profile" class="avatar" id="user-avatar" style="display:none;" />
             <div class="avatar" id="user-avatar-placeholder" style="background:#333; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-user" style="color:#1ed760; font-size:30px"></i>
             </div>
-            <div class="username" id="user-name">Loading...</div>
+            <h3 id="user-name" style="margin-top:10px; color:white; font-size:16px;">Loading...</h3>
         </div>
 
         <nav class="action-buttons">
-            <a href="#" class="btn-pill active">Spotify Stats</a>
             <a href="#" class="btn-pill">Account Settings</a>
             <a href="#" class="btn-pill">Help & Support</a>
             <a href="/logout" class="btn-pill logout">Log Out</a>
