@@ -1,213 +1,242 @@
-/* public/css/style.css - GÜNCEL HALİ */
+/* public/css/style.css - EN GÜNCEL HALİ */
 
-/* Font ve Temel Ayarlar */
 :root {
-    --color-primary-dark: #121212;
-    --color-secondary-dark: #1e1e1e;
-    --color-text-light: #ffffff;
-    --color-text-faded: #b3b3b3;
-    --color-accent-green: #1ed760;
-    --color-hover-gray: #282828;
-    --color-button-bg: #2a2a2a;
-    --color-danger: #ff4d4d;
-    --color-gradient-start: #111;
-    --color-gradient-end: #0a0a0a;
+    --bg-gradient: linear-gradient(135deg, #000000 0%, #052915 100%);
+    --window-bg: #0f0f0f; 
+    --sidebar-bg: #1e1e1e; /* Stats ile eşitlendi */
+    --accent: #1ed760; 
+    --text-white: #ffffff;
+    --text-gray: #b3b3b3;
+    --border-color: #282828;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
     font-family: 'Montserrat', sans-serif;
-    background: linear-gradient(-45deg, #000000, #1e1e1e, #0a0a0a, var(--color-accent-green), #000000);
+    background: linear-gradient(-45deg, #000000, #1e1e1e, #0a0a0a, var(--accent), #000000);
     background-size: 400% 400%;
     animation: gradientAnimation 20s ease infinite;
-    color: var(--color-text-light);
+    color: var(--text-white);
     line-height: 1.6;
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .container {
-    display: flex;
-    height: 95vh;
-    width: 90%;
-    max-width: 1400px;
+    width: 90%; max-width: 1400px; height: 95vh;
+    background-color: var(--window-bg);
     border-radius: 15px;
-    overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    display: flex; overflow: hidden;
+    border: 1px solid #222;
 }
 
 /* --- SOL MENÜ --- */
-.left-sidebar {
-    width: 280px;
-    background-color: var(--color-secondary-dark);
+.sidebar-left {
+    width: 280px; /* Stats ile eşitlendi */
+    background-color: var(--sidebar-bg);
     padding: 25px;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--color-hover-gray);
-    overflow-y: auto;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border-color);
 }
 
-.logo-area { padding-bottom: 25px; margin-bottom: 25px; border-bottom: 1px solid var(--color-hover-gray); text-align: center; }
-.logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
-.logo-accent { color: var(--color-accent-green); }
-.slogan { font-size: 13px; color: var(--color-text-faded); margin-top: 8px; font-weight: 400; }
+.logo-area {
+    padding-bottom: 25px; margin-bottom: 25px;
+    border-bottom: 1px solid var(--border-color); text-align: center;
+}
+.logo { font-size: 28px; font-weight: 900; color: white; letter-spacing: -1px; }
+.logo-accent { color: var(--accent); }
+.slogan { font-size: 13px; color: var(--text-gray); margin-top: 8px; font-weight: 400; }
 
-.playlist-section h2 { font-size: 17px; color: var(--color-text-light); margin-bottom: 15px; font-weight: 700; }
+/* PLAYLIST KISMI */
+.playlist-section { 
+    flex-grow: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden;
+    padding-right: 5px; 
+}
+.playlist-section h2 { 
+    font-size: 14px; color: var(--text-white); margin-bottom: 20px; 
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px; 
+}
 .playlist-section ul { list-style: none; }
-.playlist-section li a {
-    display: flex; align-items: center; padding: 10px 0;
-    color: var(--color-text-faded); text-decoration: none; font-size: 15px;
-    transition: color 0.2s, transform 0.2s;
+
+.playlist-item {
+    display: flex; align-items: center;
+    color: #b3b3b3; text-decoration: none;
+    margin-bottom: 15px; transition: all 0.2s ease;
+    padding: 8px; border-radius: 8px; width: 100%;
 }
-.playlist-section li a:hover { color: var(--color-text-light); transform: translateX(5px); }
-.playlist-thumbnail {
-    width: 40px; height: 40px; border-radius: 5px; margin-right: 15px;
-    background-color: var(--color-hover-gray); flex-shrink: 0;
+.playlist-item:hover { background-color: rgba(255, 255, 255, 0.05); color: #fff; transform: translateX(5px); }
+
+.playlist-cover {
+    width: 50px; height: 50px; border-radius: 6px; object-fit: cover;
+    margin-right: 15px; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
+.playlist-cover.placeholder {
+    background: #333; display: flex; align-items: center; 
+    justify-content: center; font-size: 20px; color: #555;
+}
+
+.playlist-info { overflow: hidden; }
+.playlist-name { font-size: 14px; font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.playlist-count { font-size: 11px; color: #666; display: block; }
 
 /* --- ORTA ALAN --- */
 .main-content {
-    flex-grow: 1; padding: 40px; overflow-y: auto;
-    display: flex; flex-direction: column; align-items: center;
+    flex: 1; background-color: var(--window-bg);
+    padding: 40px; display: flex; flex-direction: column;
+    align-items: center; overflow-y: auto;
 }
 
 .prompt-bar-container {
-    background-color: var(--color-secondary-dark); padding: 40px;
+    background-color: #161616; padding: 40px;
     border-radius: 15px; margin-bottom: 50px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
     width: 100%; max-width: 700px; text-align: center;
+    border: 1px solid #2a2a2a;
 }
-.prompt-bar-container h1 { font-size: 28px; margin-bottom: 20px; font-weight: 700; }
+.prompt-bar-container h1 { font-size: 28px; margin-bottom: 20px; font-weight: 700; color: white; }
 
 .prompt-input-wrapper { display: flex; gap: 10px; align-items: flex-end; }
 
 #mood-prompt {
     width: 100%; flex-grow: 1; height: 180px; padding: 18px;
-    border: 2px solid var(--color-hover-gray); border-radius: 10px;
-    background-color: #000000; color: var(--color-text-light);
+    border: 2px solid var(--border-color); border-radius: 10px;
+    background-color: #000000; color: var(--text-white);
     font-size: 17px; resize: vertical; outline: none;
-    font-family: 'Montserrat', sans-serif;
-    transition: border-color 0.2s;
+    font-family: 'Montserrat', sans-serif; transition: border-color 0.2s;
 }
-#mood-prompt:focus { border-color: var(--color-accent-green); }
+#mood-prompt:focus { border-color: var(--accent); }
 
 #camera-button {
     height: 180px; width: 60px; padding: 0;
-    background-color: var(--color-secondary-dark); color: var(--color-accent-green);
-    border: 2px solid var(--color-hover-gray); border-radius: 10px;
+    background-color: #1e1e1e; color: var(--accent);
+    border: 2px solid var(--border-color); border-radius: 10px;
     cursor: pointer; font-size: 24px; transition: 0.2s;
 }
-#camera-button:hover { background-color: var(--color-hover-gray); border-color: var(--color-accent-green); color: white; }
+#camera-button:hover { background-color: #2a2a2a; border-color: var(--accent); color: white; }
 
 #generate-button {
     margin-top: 20px; padding: 14px 30px;
-    background-color: var(--color-accent-green); color: var(--color-primary-dark);
+    background-color: var(--accent); color: #000;
     border: none; border-radius: 500px; font-weight: 700; text-transform: uppercase;
     cursor: pointer; transition: transform 0.1s, background-color 0.2s;
 }
 #generate-button:hover { background-color: #1ed760; transform: scale(1.03); }
 
-/* KAMERA DÜZENLEMELERİ (GÜNCELLENDİ) */
+/* KAMERA ALANI */
 #camera-feed-container {
-    background-color: #000;
-    border-radius: 15px;
-    overflow: hidden;
-    display: none; /* JS ile açılır */
-    flex-direction: column; /* Alt alta dizilim */
-    align-items: center;    /* Ortala */
-    padding: 10px;
-    border: 2px solid #333;
-    width: 100%;
+    background-color: #000; border-radius: 15px; overflow: hidden;
+    display: none; flex-direction: column; align-items: center;
+    padding: 10px; border: 2px solid #333; width: 100%;
 }
-
 #video-feed {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 10px;
-    transform: scaleX(-1); /* Ayna efekti */
-    margin-bottom: 20px; /* Video ile buton arasına boşluk */
+    width: 100%; max-height: 400px; object-fit: cover;
+    border-radius: 10px; transform: scaleX(-1); margin-bottom: 20px;
 }
-
-/* Capture Butonu İçin Yeni Stil */
 #capture-mood-button {
-    position: relative; /* Absolute yerine relative yaptık ki akışta dursun */
-    background-color: var(--color-accent-green);
-    color: black;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 50px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
-    margin-bottom: 10px;
+    background-color: var(--accent); color: black;
+    border: none; padding: 12px 30px; border-radius: 50px;
+    font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 10px;
 }
-#capture-mood-button:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(30,215,96,0.4); }
-
 .go-back-button {
-    align-self: flex-start; /* Sola yasla */
-    background: transparent; border: none; color: #b3b3b3;
+    align-self: flex-start; background: transparent; border: none; color: #b3b3b3;
     cursor: pointer; margin-bottom: 10px; font-size: 14px;
 }
-.go-back-button:hover { color: white; }
 
-/* AI Playlist Area */
 .ai-playlist-area { width: 100%; max-width: 700px; }
 .ai-playlist-area h2 { font-size: 22px; margin-bottom: 25px; text-align: center; }
 .placeholder-card {
-    background-color: var(--color-secondary-dark); padding: 30px;
-    border-radius: 10px; text-align: center; color: var(--color-text-faded);
+    background-color: #161616; padding: 30px;
+    border-radius: 10px; text-align: center; color: var(--text-gray);
+    border: 1px solid #2a2a2a;
 }
 
-/* --- SAĞ MENÜ (PROFİL DÜZELTMESİ) --- */
-.right-sidebar {
-    width: 250px; background-color: var(--color-secondary-dark);
-    padding: 25px; text-align: center; border-left: 1px solid var(--color-hover-gray);
-    display: flex; flex-direction: column; align-items: center; /* Dikey ortalama */
+/* --- SAĞ MENÜ (Stats ile Tam Eşitleme) --- */
+.sidebar-right {
+    width: 250px; 
+    background-color: var(--sidebar-bg);
+    padding: 25px; 
+    display: flex; flex-direction: column;
+    align-items: center; 
+    justify-content: space-between; /* Butonları yukarı ve aşağı yaslar */
+    border-left: 1px solid var(--border-color);
 }
 
-/* PROFİLİ ORTALAMA KODU (Flexbox ile Garanti Çözüm) */
-.user-profile {
-    width: 100%;
-    display: flex;
-    flex-direction: column; /* Alt alta diz */
-    align-items: center;    /* Yatayda ortala */
-    justify-content: center;
-    padding-bottom: 25px;
-    margin-bottom: 30px;
-    border-bottom: 1px solid var(--color-hover-gray);
-    text-align: center;
+.profile-area { 
+    width: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin-bottom: 30px; padding-bottom: 25px;
+    border-bottom: 1px solid var(--border-color); text-align: center; 
 }
 
-.avatar {
-    width: 85px; height: 85px; border-radius: 50%;
-    border: 3px solid var(--color-accent-green);
-    object-fit: cover; margin-bottom: 15px; /* İsimle arasına boşluk */
+.avatar { 
+    width: 85px; height: 85px; border-radius: 50%; 
+    border: 3px solid var(--accent); margin-bottom: 15px; object-fit: cover;
 }
-.user-profile h3 { font-size: 18px; font-weight: 700; color: white; margin: 0; }
+.username { font-weight: 700; font-size: 16px; color: white; } 
 
-/* Sağ Menü Butonları */
-.user-nav { width: 100%; }
-.user-nav ul { list-style: none; width: 100%; }
-.user-nav li { margin-bottom: 15px; width: 100%; }
-.user-nav li a {
+.action-buttons { width: 100%; }
+
+/* Buton Stilleri - Stats ile aynı */
+.btn-pill {
     display: block; width: 100%; padding: 12px 0;
-    background-color: var(--color-button-bg); color: var(--color-text-light);
-    text-align: center; text-decoration: none; font-weight: 600;
-    border-radius: 50px; border: 2px solid transparent; transition: all 0.3s ease;
+    border: 2px solid transparent; margin-bottom: 15px;
+    background-color: #2a2a2a; color: white;
+    text-align: center; text-decoration: none;
+    border-radius: 50px; font-weight: 600; font-size: 13px;
+    transition: all 0.3s ease;
 }
-.user-nav li a:hover {
-    background-color: #383838; color: var(--color-accent-green);
-    border-color: var(--color-accent-green); transform: translateY(-2px);
+.btn-pill:hover, .btn-pill.active {
+    background-color: #383838; color: var(--accent); border-color: var(--accent);
+    transform: translateY(-2px);
 }
-.user-nav li:last-child { margin-top: 50px; }
-.user-nav li:last-child a:hover { color: var(--color-danger); border-color: var(--color-danger); }
+.btn-pill.logout { margin-top: 30px; color: #ff4d4d; background-color: rgba(255, 77, 77, 0.1); }
+.btn-pill.logout:hover { background-color: #ff4d4d; color: white; border-color: #ff4d4d; }
 
-@keyframes gradientAnimation {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+/* MODAL (Help & Support) */
+.modal {
+    display: none; position: fixed; z-index: 1000;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px);
+    align-items: center; justify-content: center;
 }
+.modal-content {
+    background-color: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    width: 100%; max-width: 500px; padding: 30px;
+    border-radius: 15px; position: relative;
+    box-shadow: 0 10px 40px rgba(30, 215, 96, 0.2);
+    animation: slideDown 0.3s ease-out;
+}
+@keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes gradientAnimation { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+.close-modal {
+    position: absolute; top: 15px; right: 20px;
+    color: var(--text-gray); font-size: 28px; cursor: pointer;
+}
+.close-modal:hover { color: var(--accent); }
+.form-group { margin-bottom: 15px; text-align: left; }
+.form-group label { display: block; color: var(--text-white); margin-bottom: 8px; font-size: 13px; }
+.modal-content input, .modal-content textarea {
+    width: 100%; padding: 12px; background-color: #0f0f0f;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    color: var(--text-white); outline: none;
+}
+.modal-content input:focus, .modal-content textarea:focus { border-color: var(--accent); }
+.modal-send-btn {
+    background-color: var(--accent); color: black; border: none;
+    margin-top: 10px; cursor: pointer; width: 100%; padding: 12px; border-radius: 50px; font-weight: bold;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: #333; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background-color: #1ed760; }

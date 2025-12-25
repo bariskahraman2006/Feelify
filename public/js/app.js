@@ -1,8 +1,17 @@
-// public/js/app.js - ERROR FREE VERSION
+// public/js/app.js - PLAYLIST FIX & CLEAN VERSION
 
 document.addEventListener('DOMContentLoaded', async () => {
     
-    // 1. ÖNCE BUTONLARI TANIMLA (Böylece AI yüklenmese bile butonlar çalışır)
+    // 1. VERİLERİ YÜKLE
+    await loadUserProfile();
+    await loadSavedPlaylists(); // Hem Index hem Stats sayfasında çalışır
+    
+    // Stats sayfasıysa istatistikleri de yükle
+    if (document.getElementById('stats-content')) {
+        await loadStats();
+    }
+
+    // 2. BUTONLARI TANIMLA
     const generateBtn = document.getElementById('generate-button');
     const cameraBtn = document.getElementById('camera-button');
     const goBackBtn = document.getElementById('go-back-button');
@@ -28,40 +37,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (captureBtn) captureBtn.addEventListener('click', captureMoodWithAI);
 
-    // 2. VERİLERİ YÜKLE
-    await loadUserProfile();
-    if (document.getElementById('saved-playlists')) await loadSavedPlaylists();
-    if (document.getElementById('stats-content')) await loadStats();
+    // 3. HELP & SUPPORT MODAL
+    setupModal();
 
-    // 3. EN SON AI MODELLERİNİ YÜKLE (Sayfayı kilitlemesin)
+    // 4. AI MODELLERİNİ YÜKLE (Arka Planda)
     loadAIModels(); 
 });
 
-// --- YENİ: AI MODELLERİNİ YÜKLEME ---
-async function loadAIModels() {
-    console.log("AI Modelleri arka planda yükleniyor...");
-    // Eğer faceapi tanımlı değilse (internet yoksa veya script yüklenmediyse) patlamasın
-    if (typeof faceapi === 'undefined') {
-        console.error("UYARI: face-api.js kütüphanesi bulunamadı. Index.html dosyanı kontrol et.");
-        return;
-    }
+// --- PLAYLIST YÜKLEME FONKSİYONU (DÜZELTİLDİ) ---
+async function loadSavedPlaylists() {
+    // Sayfadaki tüm playlist listelerini bul (Index ve Stats)
+    const lists = document.querySelectorAll('#saved-playlists');
+    
+    if (lists.length === 0) return; // Eğer sayfada liste yoksa çık
 
-    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+    // Yükleniyor yazısı koy (Varsa)
+    lists.forEach(list => {
+        list.innerHTML = '<li style="padding:15px; color:#b3b3b3; font-size:12px;">Connecting to Spotify...</li>';
+    });
+
     try {
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
-        console.log("✅ AI Modelleri Hazır!");
-    } catch (e) {
-        console.error("AI Modelleri Yüklenemedi (İnternet bağlantını kontrol et):", e);
+        const res = await fetch('/api/my-playlists');
+        const data = await res.json();
+
+        // Listeleri temizle ve doldur
+        lists.forEach(list => {
+            list.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                list.innerHTML = '<li style="padding:15px; color:#777; font-size:12px;">No playlists found in your library.</li>';
+                return;
+            }
+
+            data.forEach(pl => {
+                // Resim kontrolü
+                const imgUrl = pl.images && pl.images.length > 0 ? pl.images[0].url : null;
+                
+                const imgHtml = imgUrl 
+                    ? `<img src="${imgUrl}" class="playlist-cover" style="width:50px; height:50px; border-radius:6px; object-fit:cover; margin-right:15px;">` 
+                    : `<div class="playlist-cover placeholder" style="width:50px; height:50px; background:#333; border-radius:6px; margin-right:15px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-music"></i></div>`;
+
+                const li = document.createElement('li');
+                
+                // HTML Yapısı (Style.css ve Stats-style.css ile uyumlu)
+                li.innerHTML = `
+                    <a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item" style="display:flex; align-items:center; text-decoration:none; color:#b3b3b3; margin-bottom:10px; padding:8px; border-radius:8px; transition:0.2s;">
+                        ${imgHtml}
+                        <div class="playlist-info" style="overflow:hidden;">
+                            <span class="playlist-name" style="font-size:14px; font-weight:700; color:white; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pl.name}</span>
+                            <span class="playlist-count" style="font-size:11px; color:#666;">${pl.tracks.total} Songs</span>
+                        </div>
+                    </a>`;
+                
+                // Hover efekti
+                const link = li.querySelector('a');
+                link.onmouseover = function() { this.style.backgroundColor = 'rgba(255,255,255,0.1)'; this.style.color = 'white'; };
+                link.onmouseout = function() { this.style.backgroundColor = 'transparent'; this.style.color = '#b3b3b3'; };
+
+                list.appendChild(li);
+            });
+        });
+
+    } catch(e) { 
+        console.error("Playlist Hatası:", e);
+        lists.forEach(l => l.innerHTML = '<li style="padding:15px; color:red; font-size:12px;">Connection Failed. Try Re-login.</li>');
     }
 }
 
-// --- API & SAYFA FONKSİYONLARI ---
+// --- DİĞER API FONKSİYONLARI ---
+
 async function loadUserProfile() {
     try {
         const res = await fetch('/api/me');
         const data = await res.json();
         document.querySelectorAll('#user-name').forEach(el => el.innerText = data.username || 'User');
+        const emailInput = document.getElementById('user-email');
+        if (emailInput) emailInput.value = data.email || "Email not available";
         if (data.image) {
             document.querySelectorAll('#user-avatar').forEach(img => {
                 img.src = data.image; img.style.display = 'block';
@@ -71,90 +122,31 @@ async function loadUserProfile() {
     } catch(e) { console.log(e); }
 }
 
-async function loadSavedPlaylists() {
-    const lists = document.querySelectorAll('#saved-playlists'); 
-    try {
-        const res = await fetch('/api/my-playlists');
-        const data = await res.json();
-
-        lists.forEach(list => {
-            list.innerHTML = '';
-            if (!data || data.length === 0) {
-                list.innerHTML = '<li style="padding:10px; color:#777; font-size:12px;">No playlists yet.</li>';
-                return;
-            }
-
-            data.forEach(pl => {
-                const li = document.createElement('li');
-                
-                const spotifyLink = pl.spotifyPlaylistId 
-                    ? `https://open.spotify.com/playlist/${pl.spotifyPlaylistId}` 
-                    : '#';
-                
-                const targetAttr = pl.spotifyPlaylistId ? 'target="_blank"' : '';
-                const cursorStyle = pl.spotifyPlaylistId ? 'cursor: pointer;' : 'cursor: default; opacity: 0.5;';
-
-                li.innerHTML = `
-                    <a href="${spotifyLink}" ${targetAttr} style="display:flex; align-items:center; text-decoration:none; color:#b3b3b3; margin-bottom:10px; transition:0.2s; ${cursorStyle}">
-                        <div class="playlist-thumbnail" style="width:40px; height:40px; background:#333; margin-right:10px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                            <i class="fas fa-music" style="color: #1ed760;"></i>
-                        </div>
-                        <span style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 180px;">
-                            ${pl.playlistName.replace('Feelify: ', '')}
-                        </span>
-                    </a>`;
-                list.appendChild(li);
-            });
-        });
-    } catch(e) { console.error(e); }
-}
-
 async function loadStats() {
-    const contentEl = document.getElementById('stats-content');
     const loadingEl = document.getElementById('loading-stats');
-    
+    const contentEl = document.getElementById('stats-content');
     try {
         const res = await fetch('/api/stats');
         const data = await res.json();
         
-        if (data.error) {
-             if(loadingEl) loadingEl.innerHTML = `<p style="color:red">${data.error}</p>`;
-             return;
-        }
+        if (data.error) { if(loadingEl) loadingEl.innerHTML = `<p style="color:red">${data.error}</p>`; return; }
 
         const tracksList = document.getElementById('tracks-list');
-        const artistsList = document.getElementById('artists-list');
-
-        if (tracksList) {
+        if(tracksList && data.tracks) {
             tracksList.innerHTML = '';
-            data.tracks.forEach((t, i) => {
-                const img = t.album.images[0]?.url || '';
-                tracksList.innerHTML += `
-                    <a href="${t.external_urls.spotify}" target="_blank" class="list-item">
-                        <div class="rank">${i + 1}</div>
-                        <img src="${img}" class="item-img" alt="art">
-                        <div class="info">
-                            <span class="title">${t.name}</span>
-                            <span class="artist">${t.artists[0].name}</span>
-                        </div>
-                    </a>`;
+            data.tracks.forEach((t,i) => {
+                 tracksList.innerHTML += `<a href="${t.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${t.album.images[0].url}" style="width:45px; height:45px; border-radius:5px; margin-right:12px;"><div class="info"><span class="title" style="color:white; font-weight:bold;">${t.name}</span><span class="artist" style="color:#b3b3b3; font-size:12px;">${t.artists[0].name}</span></div></a>`;
             });
+        }
+        
+        const artistsList = document.getElementById('artists-list');
+        if(artistsList && data.artists) {
+             artistsList.innerHTML = '';
+             data.artists.forEach((a,i) => {
+                 artistsList.innerHTML += `<a href="${a.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${a.images[0].url}" style="width:45px; height:45px; border-radius:50%; margin-right:12px;"><div class="info"><span class="title" style="color:white; font-weight:bold;">${a.name}</span></div></a>`;
+             });
         }
 
-        if (artistsList) {
-            artistsList.innerHTML = '';
-            data.artists.forEach((a, i) => {
-                const img = a.images[0]?.url || '';
-                artistsList.innerHTML += `
-                    <a href="${a.external_urls.spotify}" target="_blank" class="list-item">
-                        <div class="rank">${i + 1}</div>
-                        <img src="${img}" class="item-img" style="border-radius:50%;" alt="artist">
-                        <div class="info">
-                            <span class="title">${a.name}</span>
-                        </div>
-                    </a>`;
-            });
-        }
         if(loadingEl) loadingEl.style.display = 'none';
         if(contentEl) contentEl.style.display = 'flex';
     } catch(e) { console.log(e); }
@@ -166,44 +158,90 @@ async function generateMelody() {
     const btn = document.getElementById('generate-button');
     
     if (input.value.length < 3) { alert("Please write something!"); return; }
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-    resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is analyzing your taste...</p></div>';
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is analyzing...</p></div>';
 
     try {
         const res = await fetch('/api/generate-melody', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ feeling_text: input.value })
         });
         const data = await res.json();
-
         if (data.success) {
+            // ORTALANMIŞ VE ŞIK KART TASARIMI
             resultDiv.innerHTML = `
-                <div class="placeholder-card" style="border-left: 5px solid #1DB954; text-align:left; padding-left:20px;">
-                    <h3 style="margin-bottom:10px;">✅ Playlist Ready!</h3>
-                    <p style="margin-bottom:15px;">Mood: <strong>${data.mood}</strong></p>
-                    <a href="${data.playlist_url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:10px 20px; border-radius:50px; text-decoration:none; font-weight:bold;">
-                        <i class="fab fa-spotify"></i> Open in Spotify
+                <div class="placeholder-card" style="border: 2px solid #1DB954; text-align: center; padding: 30px; display:flex; flex-direction:column; align-items:center;">
+                    <div style="font-size: 40px; color: #1DB954; margin-bottom: 10px;"><i class="fas fa-check-circle"></i></div>
+                    <h3 style="margin-bottom:10px; color:white;">Playlist Ready!</h3>
+                    <p style="margin-bottom:20px; color:#b3b3b3;">Mood Detected: <strong style="color:#1ed760;">${data.mood}</strong></p>
+                    <a href="${data.playlist_url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:12px 30px; border-radius:50px; text-decoration:none; font-weight:bold; font-size:16px; transition:0.2s;">
+                        <i class="fab fa-spotify" style="margin-right:5px;"></i> Open in Spotify
                     </a>
                 </div>`;
-            loadSavedPlaylists();
+            setTimeout(loadSavedPlaylists, 2000); // Listeyi yenile
         } else { resultDiv.innerHTML = `<p style="color:red">Error: ${data.error}</p>`; }
-    } catch (e) { 
-        console.error(e);
-        resultDiv.innerHTML = `<p style="color:red">Connection error. Check terminal logs.</p>`; 
-    } 
+    } catch (e) { resultDiv.innerHTML = `<p style="color:red">Connection error.</p>`; } 
     finally { btn.disabled = false; btn.innerHTML = 'GENERATE MY MELODY'; }
 }
 
-// --- KAMERA ---
+// --- MODAL SETUP ---
+function setupModal() {
+    const modal = document.getElementById("support-modal");
+    const closeBtn = document.querySelector(".close-modal");
+    const supportForm = document.getElementById("support-form");
+    const helpBtns = document.querySelectorAll("#help-btn, #help-btn-stats"); 
+
+    helpBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (modal) modal.style.display = "flex";
+        });
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', () => { if (modal) modal.style.display = "none"; });
+    if (modal) window.addEventListener('click', (e) => { if (e.target == modal) modal.style.display = "none"; });
+
+    if (supportForm) {
+        supportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById("support-msg").value;
+            const email = document.getElementById("user-email").value;
+            const sendBtn = document.querySelector('.modal-send-btn');
+            
+            if(message.length < 5) { alert("Please describe issue."); return; }
+            
+            sendBtn.innerHTML = 'Sending...'; sendBtn.disabled = true;
+            try {
+                const res = await fetch('/api/send-support', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ userEmail: email, message: message })
+                });
+                const d = await res.json();
+                if(d.success) {
+                    sendBtn.innerHTML = 'Sent!'; 
+                    setTimeout(() => { modal.style.display="none"; sendBtn.innerText="Send"; sendBtn.disabled=false; }, 1500);
+                } else { alert("Error."); sendBtn.disabled=false; }
+            } catch(e) { alert("Failed."); sendBtn.disabled=false; }
+        });
+    }
+}
+
+// --- AI & KAMERA ---
+async function loadAIModels() {
+    if (typeof faceapi === 'undefined') return;
+    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+    try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+    } catch (e) { console.error(e); }
+}
+
 let stream;
 async function initCamera() {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         document.getElementById('video-feed').srcObject = stream;
-    } catch(e) { alert("Camera permission denied."); }
+    } catch(e) { alert("Camera Permission Denied"); }
 }
 function stopCamera() { if (stream) stream.getTracks().forEach(t => t.stop()); }
 
@@ -211,47 +249,26 @@ async function captureMoodWithAI() {
     const video = document.getElementById('video-feed');
     const input = document.getElementById('mood-prompt');
     const container = document.getElementById('camera-feed-container');
-
-    // Eğer faceapi yüklenmediyse uyar ve çık
-    if (typeof faceapi === 'undefined' || !faceapi.nets.tinyFaceDetector.params) {
-        alert("AI models are not loaded yet or blocked. Check your internet connection.");
-        return;
-    }
-
     const overlay = document.createElement('div');
-    overlay.innerHTML = `<div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:#1ed760; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999;"><i class="fas fa-brain fa-3x fa-spin"></i><h3>AI ANALYZING...</h3></div>`;
+    overlay.innerHTML = `<div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:#1ed760; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999;"><i class="fas fa-brain fa-3x fa-spin"></i><h3>ANALYZING...</h3></div>`;
     container.appendChild(overlay);
 
     try {
         const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
-
         setTimeout(() => {
             if (detections) {
                 const expressions = detections.expressions;
-                let maxEmotion = 'neutral';
-                let maxValue = 0;
+                let maxEmotion = 'neutral'; let maxValue = 0;
                 for (const [emotion, value] of Object.entries(expressions)) {
                     if (value > maxValue) { maxValue = value; maxEmotion = emotion; }
                 }
-                let aiText = "";
-                if (maxEmotion === 'happy') aiText = "Detected: Happiness! Suggesting Upbeat Hits.";
-                else if (maxEmotion === 'sad') aiText = "Detected: Sadness. Suggesting Acoustic & Slow Songs.";
-                else if (maxEmotion === 'angry') aiText = "Detected: Frustration. Suggesting Rock & Metal.";
-                else aiText = `Detected: ${maxEmotion.toUpperCase()}. Suggesting balanced mix.`;
-                
-                input.value = aiText + ` (${Math.round(maxValue * 100)}%)`;
-            } else {
-                input.value = "Face not detected. Please improve lighting.";
-            }
-            stopCamera();
-            overlay.remove();
-            container.style.display = 'none';
+                let aiText = `Detected: ${maxEmotion.toUpperCase()}.`;
+                if(maxEmotion === 'happy') aiText = "Detected Happiness! Upbeat vibes.";
+                else if(maxEmotion === 'sad') aiText = "Detected Sadness. Acoustic vibes.";
+                input.value = aiText + ` (${Math.round(maxValue*100)}%)`;
+            } else { input.value = "Face not detected."; }
+            stopCamera(); overlay.remove(); container.style.display = 'none';
             document.getElementById('prompt-input-wrapper').style.display = 'flex';
         }, 1000);
-    } catch(e) {
-        console.error("Kamera Hatası:", e);
-        alert("AI Error. Check console.");
-        stopCamera();
-        overlay.remove();
-    }
+    } catch(e) { stopCamera(); overlay.remove(); alert("AI Error"); }
 }
