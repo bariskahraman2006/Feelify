@@ -1,17 +1,16 @@
-// public/js/app.js - PLAYLIST FIX & CLEAN VERSION
+// public/js/app.js - FINAL SÜRÜM (Help Button Fix)
 
 document.addEventListener('DOMContentLoaded', async () => {
     
     // 1. VERİLERİ YÜKLE
     await loadUserProfile();
-    await loadSavedPlaylists(); // Hem Index hem Stats sayfasında çalışır
+    await loadSavedPlaylists();
     
-    // Stats sayfasıysa istatistikleri de yükle
     if (document.getElementById('stats-content')) {
         await loadStats();
     }
 
-    // 2. BUTONLARI TANIMLA
+    // 2. ANA FONKSİYON BUTONLARI
     const generateBtn = document.getElementById('generate-button');
     const cameraBtn = document.getElementById('camera-button');
     const goBackBtn = document.getElementById('go-back-button');
@@ -37,49 +36,119 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (captureBtn) captureBtn.addEventListener('click', captureMoodWithAI);
 
-    // 3. HELP & SUPPORT MODAL
+    // --- 3. HELP & SUPPORT MODAL KURULUMU (DÜZELTİLDİ) ---
     setupModal();
 
-    // 4. AI MODELLERİNİ YÜKLE (Arka Planda)
+    // 4. AI MODELLERİNİ YÜKLE
     loadAIModels(); 
 });
 
-// --- PLAYLIST YÜKLEME FONKSİYONU (DÜZELTİLDİ) ---
-async function loadSavedPlaylists() {
-    // Sayfadaki tüm playlist listelerini bul (Index ve Stats)
-    const lists = document.querySelectorAll('#saved-playlists');
+// --- MODAL VE DESTEK BUTONU MANTIĞI ---
+function setupModal() {
+    const modal = document.getElementById("support-modal");
+    const closeBtn = document.querySelector(".close-modal");
+    const supportForm = document.getElementById("support-form");
     
-    if (lists.length === 0) return; // Eğer sayfada liste yoksa çık
+    // Hem ana sayfa hem stats sayfası butonlarını seçiyoruz
+    const helpBtns = document.querySelectorAll("#help-btn, #help-btn-stats");
 
-    // Yükleniyor yazısı koy (Varsa)
-    lists.forEach(list => {
-        list.innerHTML = '<li style="padding:15px; color:#b3b3b3; font-size:12px;">Connecting to Spotify...</li>';
+    // Bulunan her butona tıklama özelliği ekle
+    helpBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (modal) modal.style.display = "flex";
+        });
     });
+
+    // Kapatma butonu
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            if (modal) modal.style.display = "none";
+        });
+    }
+
+    // Pencere dışına tıklayınca kapatma
+    if (modal) {
+        window.addEventListener('click', (e) => {
+            if (e.target == modal) modal.style.display = "none";
+        });
+    }
+
+    // Form gönderme işlemi
+    if (supportForm) {
+        supportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById("support-msg").value;
+            const email = document.getElementById("user-email").value;
+            const sendBtn = document.querySelector('.modal-send-btn');
+            
+            if(message.length < 5) {
+                alert("Please describe your issue.");
+                return;
+            }
+
+            sendBtn.innerHTML = 'Sending...';
+            sendBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/send-support', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ userEmail: email, message: message })
+                });
+
+                const data = await res.json();
+
+                if(data.success) {
+                    sendBtn.innerHTML = 'Sent!';
+                    sendBtn.style.backgroundColor = '#1ed760';
+                    setTimeout(() => {
+                        modal.style.display = "none";
+                        document.getElementById("support-msg").value = ""; 
+                        sendBtn.innerText = "Send Message";
+                        sendBtn.style.backgroundColor = "";
+                        sendBtn.disabled = false;
+                    }, 1500);
+                } else {
+                    alert("Error: " + data.error);
+                    sendBtn.innerText = "Try Again";
+                    sendBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Connection failed.");
+                sendBtn.innerText = "Try Again";
+                sendBtn.disabled = false;
+            }
+        });
+    }
+}
+
+// --- DİĞER FONKSİYONLAR (AYNI KALDI) ---
+
+async function loadSavedPlaylists() {
+    const lists = document.querySelectorAll('#saved-playlists');
+    if (lists.length === 0) return;
+
+    lists.forEach(l => l.innerHTML = '<li style="padding:15px; color:#b3b3b3; font-size:12px;">Connecting to Spotify...</li>');
 
     try {
         const res = await fetch('/api/my-playlists');
         const data = await res.json();
 
-        // Listeleri temizle ve doldur
         lists.forEach(list => {
             list.innerHTML = '';
-            
             if (!data || data.length === 0) {
-                list.innerHTML = '<li style="padding:15px; color:#777; font-size:12px;">No playlists found in your library.</li>';
+                list.innerHTML = '<li style="padding:15px; color:#777; font-size:12px;">No playlists found.</li>';
                 return;
             }
-
             data.forEach(pl => {
-                // Resim kontrolü
                 const imgUrl = pl.images && pl.images.length > 0 ? pl.images[0].url : null;
-                
                 const imgHtml = imgUrl 
                     ? `<img src="${imgUrl}" class="playlist-cover" style="width:50px; height:50px; border-radius:6px; object-fit:cover; margin-right:15px;">` 
                     : `<div class="playlist-cover placeholder" style="width:50px; height:50px; background:#333; border-radius:6px; margin-right:15px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-music"></i></div>`;
 
                 const li = document.createElement('li');
-                
-                // HTML Yapısı (Style.css ve Stats-style.css ile uyumlu)
                 li.innerHTML = `
                     <a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item" style="display:flex; align-items:center; text-decoration:none; color:#b3b3b3; margin-bottom:10px; padding:8px; border-radius:8px; transition:0.2s;">
                         ${imgHtml}
@@ -89,22 +158,14 @@ async function loadSavedPlaylists() {
                         </div>
                     </a>`;
                 
-                // Hover efekti
                 const link = li.querySelector('a');
                 link.onmouseover = function() { this.style.backgroundColor = 'rgba(255,255,255,0.1)'; this.style.color = 'white'; };
                 link.onmouseout = function() { this.style.backgroundColor = 'transparent'; this.style.color = '#b3b3b3'; };
-
                 list.appendChild(li);
             });
         });
-
-    } catch(e) { 
-        console.error("Playlist Hatası:", e);
-        lists.forEach(l => l.innerHTML = '<li style="padding:15px; color:red; font-size:12px;">Connection Failed. Try Re-login.</li>');
-    }
+    } catch(e) { lists.forEach(l => l.innerHTML = '<li style="color:red;">Error loading lists.</li>'); }
 }
-
-// --- DİĞER API FONKSİYONLARI ---
 
 async function loadUserProfile() {
     try {
@@ -114,9 +175,7 @@ async function loadUserProfile() {
         const emailInput = document.getElementById('user-email');
         if (emailInput) emailInput.value = data.email || "Email not available";
         if (data.image) {
-            document.querySelectorAll('#user-avatar').forEach(img => {
-                img.src = data.image; img.style.display = 'block';
-            });
+            document.querySelectorAll('#user-avatar').forEach(img => { img.src = data.image; img.style.display = 'block'; });
             document.querySelectorAll('#user-avatar-placeholder').forEach(el => el.style.display = 'none');
         }
     } catch(e) { console.log(e); }
@@ -128,7 +187,6 @@ async function loadStats() {
     try {
         const res = await fetch('/api/stats');
         const data = await res.json();
-        
         if (data.error) { if(loadingEl) loadingEl.innerHTML = `<p style="color:red">${data.error}</p>`; return; }
 
         const tracksList = document.getElementById('tracks-list');
@@ -146,7 +204,6 @@ async function loadStats() {
                  artistsList.innerHTML += `<a href="${a.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${a.images[0].url}" style="width:45px; height:45px; border-radius:50%; margin-right:12px;"><div class="info"><span class="title" style="color:white; font-weight:bold;">${a.name}</span></div></a>`;
              });
         }
-
         if(loadingEl) loadingEl.style.display = 'none';
         if(contentEl) contentEl.style.display = 'flex';
     } catch(e) { console.log(e); }
@@ -156,11 +213,9 @@ async function generateMelody() {
     const input = document.getElementById('mood-prompt');
     const resultDiv = document.getElementById('playlist-results');
     const btn = document.getElementById('generate-button');
-    
     if (input.value.length < 3) { alert("Please write something!"); return; }
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
     resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is analyzing...</p></div>';
-
     try {
         const res = await fetch('/api/generate-melody', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -168,65 +223,19 @@ async function generateMelody() {
         });
         const data = await res.json();
         if (data.success) {
-            // ORTALANMIŞ VE ŞIK KART TASARIMI
             resultDiv.innerHTML = `
                 <div class="placeholder-card" style="border: 2px solid #1DB954; text-align: center; padding: 30px; display:flex; flex-direction:column; align-items:center;">
                     <div style="font-size: 40px; color: #1DB954; margin-bottom: 10px;"><i class="fas fa-check-circle"></i></div>
                     <h3 style="margin-bottom:10px; color:white;">Playlist Ready!</h3>
-                    <p style="margin-bottom:20px; color:#b3b3b3;">Mood Detected: <strong style="color:#1ed760;">${data.mood}</strong></p>
-                    <a href="${data.playlist_url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:12px 30px; border-radius:50px; text-decoration:none; font-weight:bold; font-size:16px; transition:0.2s;">
-                        <i class="fab fa-spotify" style="margin-right:5px;"></i> Open in Spotify
-                    </a>
+                    <p style="margin-bottom:20px; color:#b3b3b3;">Mood: <strong style="color:#1ed760;">${data.mood}</strong></p>
+                    <a href="${data.playlist_url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:12px 30px; border-radius:50px; text-decoration:none; font-weight:bold; font-size:16px; transition:0.2s;">Open in Spotify</a>
                 </div>`;
-            setTimeout(loadSavedPlaylists, 2000); // Listeyi yenile
+            setTimeout(loadSavedPlaylists, 2000);
         } else { resultDiv.innerHTML = `<p style="color:red">Error: ${data.error}</p>`; }
     } catch (e) { resultDiv.innerHTML = `<p style="color:red">Connection error.</p>`; } 
     finally { btn.disabled = false; btn.innerHTML = 'GENERATE MY MELODY'; }
 }
 
-// --- MODAL SETUP ---
-function setupModal() {
-    const modal = document.getElementById("support-modal");
-    const closeBtn = document.querySelector(".close-modal");
-    const supportForm = document.getElementById("support-form");
-    const helpBtns = document.querySelectorAll("#help-btn, #help-btn-stats"); 
-
-    helpBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (modal) modal.style.display = "flex";
-        });
-    });
-
-    if (closeBtn) closeBtn.addEventListener('click', () => { if (modal) modal.style.display = "none"; });
-    if (modal) window.addEventListener('click', (e) => { if (e.target == modal) modal.style.display = "none"; });
-
-    if (supportForm) {
-        supportForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = document.getElementById("support-msg").value;
-            const email = document.getElementById("user-email").value;
-            const sendBtn = document.querySelector('.modal-send-btn');
-            
-            if(message.length < 5) { alert("Please describe issue."); return; }
-            
-            sendBtn.innerHTML = 'Sending...'; sendBtn.disabled = true;
-            try {
-                const res = await fetch('/api/send-support', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ userEmail: email, message: message })
-                });
-                const d = await res.json();
-                if(d.success) {
-                    sendBtn.innerHTML = 'Sent!'; 
-                    setTimeout(() => { modal.style.display="none"; sendBtn.innerText="Send"; sendBtn.disabled=false; }, 1500);
-                } else { alert("Error."); sendBtn.disabled=false; }
-            } catch(e) { alert("Failed."); sendBtn.disabled=false; }
-        });
-    }
-}
-
-// --- AI & KAMERA ---
 async function loadAIModels() {
     if (typeof faceapi === 'undefined') return;
     const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
@@ -241,10 +250,9 @@ async function initCamera() {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         document.getElementById('video-feed').srcObject = stream;
-    } catch(e) { alert("Camera Permission Denied"); }
+    } catch(e) { alert("Permission denied"); }
 }
 function stopCamera() { if (stream) stream.getTracks().forEach(t => t.stop()); }
-
 async function captureMoodWithAI() {
     const video = document.getElementById('video-feed');
     const input = document.getElementById('mood-prompt');
@@ -252,7 +260,6 @@ async function captureMoodWithAI() {
     const overlay = document.createElement('div');
     overlay.innerHTML = `<div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:#1ed760; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999;"><i class="fas fa-brain fa-3x fa-spin"></i><h3>ANALYZING...</h3></div>`;
     container.appendChild(overlay);
-
     try {
         const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
         setTimeout(() => {
