@@ -15,7 +15,7 @@
 
 body {
   font-family: 'Montserrat', sans-serif;
-  /* hareketli arka plan */
+ 
   background: linear-gradient(
     -45deg,
     #000000,
@@ -34,7 +34,7 @@ body {
   align-items: center;
 }
 
-/* giriş */
+
 .login-container {
   width: 100%;
   max-width: 450px;
@@ -48,7 +48,7 @@ body {
 .logo-area {
   margin-bottom: 35px;
   
-  /* gecikmeli giriş */
+
   animation: fadeInUp 0.8s ease-out 0.3s backwards;
 }
 
@@ -61,7 +61,7 @@ body {
 .logo-accent {
   color: var(--color-accent-green);
   
-  /* yanıp sönme efekti */
+ 
   animation: breathingGlow 3s ease-in-out infinite;
 }
 
@@ -73,7 +73,7 @@ body {
 }
 
 .spotify-login-only {
-  /* gecikmeli giriş  */
+ 
   animation: fadeInUp 0.8s ease-out 0.6s backwards;
 }
 
@@ -89,7 +89,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   
-  /* box shadow */
+ 
   transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
   
   font-size: 16px;
@@ -100,7 +100,7 @@ body {
   background-color: var(--color-hover-gray);
   border-color: var(--color-accent-green);
   
-  /* buton çevresi parlama */
+ 
   box-shadow: 0 0 15px 0 rgba(30, 215, 96, 0.6);
 }
 
@@ -116,7 +116,7 @@ body {
   color: var(--color-text-faded);
   line-height: 1.5;
 }
-/* arka plan */
+
 @keyframes gradientAnimation {
   0% {
     background-position: 0% 50%;
@@ -129,7 +129,7 @@ body {
   }
 }
 
-/* hareketli arkaplan */
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -141,7 +141,7 @@ body {
   }
 }
 
-/* yanıp sönme efekt */
+
 @keyframes breathingGlow {
   0% {
     text-shadow: 0 0 5px rgba(30, 215, 96, 0.2);

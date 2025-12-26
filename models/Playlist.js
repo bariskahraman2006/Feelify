@@ -1,4 +1,4 @@
-// models/Playlist.js
+
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -13,7 +13,7 @@ const AiAnalysisSchema = new Schema({
     sourceMood: { type: String },
     averageValence: { type: Number },
     averageEnergy: { type: Number },
-    dominantGenres: [String] // String dizisi
+    dominantGenres: [String] 
 }, { _id: false });
 
 const PlaylistSchema = new Schema({
@@ -27,19 +27,18 @@ const PlaylistSchema = new Schema({
         required: true
     },
     
-    // --- KRİTİK EKLEME BURADA ---
-    // Bu alan olmadan Spotify linki oluşturulamaz
+    
     spotifyPlaylistId: { 
         type: String, 
         required: true 
     },
-    // ---------------------------
+    
 
     createdAt: {
         type: Date,
         default: Date.now
     },
-    tracks: [TrackSchema], // İç içe geçmiş şarkı objeleri dizisi
+    tracks: [TrackSchema], 
     aiAnalysis: {
         type: AiAnalysisSchema
     }

@@ -1,4 +1,4 @@
-// Dosya: models/User.js
+
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -21,10 +21,10 @@ const UserSchema = new Schema({
         unique: true,
         match: [/.+@.+\..+/, 'Lütfen geçerli bir email adresi girin']
     },
-    // DÜZELTME BURADA YAPILDI:
+   
     passwordHash: {
         type: String,
-        required: false // <-- ARTIK ZORUNLU DEĞİL (Spotify kullanıcıları için)
+        required: false 
     },
     createdAt: {
         type: Date,

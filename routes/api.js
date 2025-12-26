@@ -1,4 +1,3 @@
-// routes/api.js - %100 ÇALIŞAN SPOTIFY MODU
 const express = require('express');
 const router = express.Router();
 const SpotifyWebApi = require('spotify-web-api-node');
@@ -6,7 +5,7 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Playlist = require('../models/Playlist');
 
-// --- TOKEN YÖNETİMİ ---
+// Helper function to get Spotify Client
 async function getSpotifyClient(req, res) {
     if (!req.cookies.spotify_user_id) return null;
     const user = await User.findOne({ 'spotifyData.spotifyUserId': req.cookies.spotify_user_id });
@@ -34,7 +33,7 @@ async function getSpotifyClient(req, res) {
     return { api: spotifyApi, user: user };
 }
 
-// --- CALLBACK ---
+// Spotify Callback Route
 router.get('/', async (req, res) => {
     const code = req.query.code;
     const spotifyApi = new SpotifyWebApi({
@@ -68,68 +67,98 @@ router.get('/', async (req, res) => {
         res.cookie('spotify_user_id', me.body.id, { maxAge: 3600000 });
         res.cookie('access_token', accessToken, { maxAge: 3600000 });
         res.redirect('/');
-    } catch (err) { res.status(500).send(`Hata: ${err.message}`); }
+    } catch (err) { res.status(500).send(`Error: ${err.message}`); }
 });
 
-// --- KULLANICI BİLGİSİ ---
+// Profile Info
 router.get('/me', async (req, res) => {
     const client = await getSpotifyClient(req, res);
-    if (!client) return res.status(401).json({ error: 'Giriş yok' });
+    if (!client) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const me = await client.api.getMe();
         res.json({ username: me.body.display_name, image: me.body.images?.[0]?.url || null, email: me.body.email });
     } catch (e) { res.json({ username: 'User', image: null, email: null }); }
 });
 
-// --- PLAYLISTLERİ GETİR (DÜZELTİLEN KISIM) ---
+// User Playlists
 router.get('/my-playlists', async (req, res) => {
     const client = await getSpotifyClient(req, res);
-    if (!client) return res.json([]); // Giriş yoksa boş liste dön
+    if (!client) return res.json([]); 
     
     try {
-        // DB yerine direkt Spotify'dan çekiyoruz (Resimli ve Linkli gelir)
         const data = await client.api.getUserPlaylists({ limit: 50 });
         res.json(data.body.items);
     } catch (e) {
-        console.error("Playlist Hatası:", e);
-        res.json([]); // Hata olursa boş liste dön, "Connection Failed" dedirtme
+        console.error("Playlist Error:", e);
+        res.json([]); 
     }
 });
 
-// --- DESTEK MAİLİ ---
+// --- UPDATED SUPPORT EMAIL ROUTE (FULLY ENGLISH & TICKET FORMAT) ---
 router.post('/send-support', async (req, res) => {
     const { userEmail, message } = req.body;
+
     const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        auth: {
+            user: 'feelify22@gmail.com',
+            pass: process.env.EMAIL_PASS
+        }
     });
+
+    const ticketId = Math.floor(1000 + Math.random() * 9000);
+
+    // 1. ADMIN NOTIFICATION (Sent to you)
+    const adminMailOptions = {
+        from: `"${userEmail} (Support Ticket)" <feelify22@gmail.com>`,
+        to: 'feelify22@gmail.com',
+        replyTo: userEmail,
+        subject: `🚨 [TICKET #${ticketId}] New Support Request from: ${userEmail}`,
+        text: `You have received a new support ticket!\n\nUser: ${userEmail}\n\nMessage:\n${message}\n\n--- Ticket ID: ${ticketId} ---`
+    };
+
+    // 2. USER AUTO-REPLY (Sent to the user)
+    const userAutoReplyOptions = {
+        from: `"Feelify Support" <feelify22@gmail.com>`,
+        to: userEmail,
+        subject: `Ticket Received! [#${ticketId}] - Feelify Support`,
+        html: `
+            <div style="font-family: 'Montserrat', sans-serif; background-color: #0f0f0f; color: white; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #1ed760;">Hi there!</h2>
+                <p>Thanks for reaching out to <strong>Feelify</strong>. We've received your support ticket (<strong>#${ticketId}</strong>) and our team will get back to you as soon as possible.</p>
+                <hr style="border: 0; border-top: 1px solid #333;">
+                <p style="font-size: 12px; color: #b3b3b3;">Your message: <br> "<em>${message}</em>"</p>
+                <p style="color: #1ed760; font-weight: bold;">Keep vibing!</p>
+            </div>
+        `
+    };
+
     try {
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-            subject: `Feelify Destek: ${userEmail}`,
-            text: `Kullanıcı: ${userEmail}\n\nMesaj:\n${message}`
-        });
+        await transporter.sendMail(adminMailOptions);
+        await transporter.sendMail(userAutoReplyOptions);
         res.json({ success: true });
-    } catch (error) { res.status(500).json({ success: false, error: "Mail hatası." }); }
+    } catch (error) {
+        console.error("Mail sending error:", error);
+        res.status(500).json({ success: false, error: "Mail could not be sent." });
+    }
 });
 
-// --- STATS ---
+// Stats Route
 router.get('/stats', async (req, res) => {
     const client = await getSpotifyClient(req, res);
-    if (!client) return res.status(401).json({ error: 'Giriş yok' });
+    if (!client) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const tracks = await client.api.getMyTopTracks({ limit: 10, time_range: 'short_term' });
         const artists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
         res.json({ tracks: tracks.body.items, artists: artists.body.items });
-    } catch (e) { res.status(500).json({ error: 'Veri yok' }); }
+    } catch (e) { res.status(500).json({ error: 'No data' }); }
 });
 
-// --- MELODİ OLUŞTURMA ---
+// AI Melody Generation
 router.post('/generate-melody', async (req, res) => {
     const { feeling_text } = req.body;
     const client = await getSpotifyClient(req, res);
-    if (!client) return res.status(401).json({ success: false, error: 'Oturum kapalı' });
+    if (!client) return res.status(401).json({ success: false, error: 'Session closed' });
 
     try {
         const text = feeling_text.toLowerCase();
@@ -168,7 +197,7 @@ router.post('/generate-melody', async (req, res) => {
         }
 
         const trackUris = [...new Set(finalTracks.map(t => t.uri))];
-        if (trackUris.length === 0) return res.status(400).json({ success: false, error: "Şarkı bulunamadı." });
+        if (trackUris.length === 0) return res.status(400).json({ success: false, error: "No tracks found." });
 
         const me = await client.api.getMe();
         const playlist = await client.api.createPlaylist(me.body.id, { 
@@ -176,7 +205,6 @@ router.post('/generate-melody', async (req, res) => {
         });
         await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
 
-        // Opsiyonel DB Kayıt
         const newPlaylist = new Playlist({
             userId: client.user._id,
             playlistName: `Feelify: ${moodName}`,
@@ -190,7 +218,7 @@ router.post('/generate-melody', async (req, res) => {
 
     } catch (error) { 
         console.error(error);
-        res.status(500).json({ success: false, error: "Hata oluştu." });
+        res.status(500).json({ success: false, error: "Error occurred." });
     }
 });
 

@@ -1,9 +1,9 @@
-/* public/css/style.css - EN GÜNCEL HALİ */
+
 
 :root {
     --bg-gradient: linear-gradient(135deg, #000000 0%, #052915 100%);
     --window-bg: #0f0f0f; 
-    --sidebar-bg: #1e1e1e; /* Stats ile eşitlendi */
+    --sidebar-bg: #1e1e1e;
     --accent: #1ed760; 
     --text-white: #ffffff;
     --text-gray: #b3b3b3;
@@ -35,9 +35,8 @@ body {
     border: 1px solid #222;
 }
 
-/* --- SOL MENÜ --- */
 .sidebar-left {
-    width: 280px; /* Stats ile eşitlendi */
+    width: 250px; 
     background-color: var(--sidebar-bg);
     padding: 25px;
     display: flex; flex-direction: column;
@@ -52,7 +51,7 @@ body {
 .logo-accent { color: var(--accent); }
 .slogan { font-size: 13px; color: var(--text-gray); margin-top: 8px; font-weight: 400; }
 
-/* PLAYLIST KISMI */
+
 .playlist-section { 
     flex-grow: 1; 
     overflow-y: auto; 
@@ -74,7 +73,7 @@ body {
 .playlist-item:hover { background-color: rgba(255, 255, 255, 0.05); color: #fff; transform: translateX(5px); }
 
 .playlist-cover {
-    width: 100px; height: 100px; border-radius: 6px; object-fit: cover;
+    width: 65px !important; height: 65px !important; border-radius: 10px; object-fit: cover;
     margin-right: 15px; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
 .playlist-cover.placeholder {
@@ -83,10 +82,10 @@ body {
 }
 
 .playlist-info { overflow: hidden; }
-.playlist-name { font-size: 14px; font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.playlist-count { font-size: 11px; color: #666; display: block; }
+.playlist-name { font-size: 10px !important; font-weight: 700 !important; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.playlist-count { font-size: 10px; color: #666; display: block; }
 
-/* --- ORTA ALAN --- */
+
 .main-content {
     flex: 1; background-color: var(--window-bg);
     padding: 40px; display: flex; flex-direction: column;
@@ -129,7 +128,7 @@ body {
 }
 #generate-button:hover { background-color: #1ed760; transform: scale(1.03); }
 
-/* KAMERA ALANI */
+
 #camera-feed-container {
     background-color: #000; border-radius: 15px; overflow: hidden;
     display: none; flex-direction: column; align-items: center;
@@ -144,9 +143,16 @@ body {
     border: none; padding: 12px 30px; border-radius: 50px;
     font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 10px;
 }
+#capture-mood-button:hover { background-color: #1ed760; transform: scale(1.03); }
+
 .go-back-button {
     align-self: flex-start; background: transparent; border: none; color: #b3b3b3;
     cursor: pointer; margin-bottom: 10px; font-size: 14px;
+}
+#go-back-button:hover {
+    color: var(--accent);        
+    transform: scale(1.05);       
+    text-shadow: 0 0 8px rgba(30, 215, 96, 0.4); 
 }
 
 .ai-playlist-area { width: 100%; max-width: 700px; }
@@ -157,14 +163,14 @@ body {
     border: 1px solid #2a2a2a;
 }
 
-/* --- SAĞ MENÜ (Stats ile Tam Eşitleme) --- */
+
 .sidebar-right {
     width: 250px; 
     background-color: var(--sidebar-bg);
     padding: 25px; 
     display: flex; flex-direction: column;
     align-items: center; 
-    justify-content: space-between; /* Butonları yukarı ve aşağı yaslar */
+    justify-content: space-between; 
     border-left: 1px solid var(--border-color);
 }
 
@@ -183,7 +189,7 @@ body {
 
 .action-buttons { width: 100%; }
 
-/* Buton Stilleri - Stats ile aynı */
+
 .btn-pill {
     display: block; width: 100%; padding: 12px 0;
     border: 2px solid transparent; margin-bottom: 15px;
@@ -199,7 +205,7 @@ body {
 .btn-pill.logout { margin-top: 30px; color: #ff4d4d; background-color: rgba(255, 77, 77, 0.1); }
 .btn-pill.logout:hover { background-color: #ff4d4d; color: white; border-color: #ff4d4d; }
 
-/* MODAL (Help & Support) */
+
 .modal {
     display: none; position: fixed; z-index: 1000;
     left: 0; top: 0; width: 100%; height: 100%;
@@ -235,7 +241,7 @@ body {
     margin-top: 10px; cursor: pointer; width: 100%; padding: 12px; border-radius: 50px; font-weight: bold;
 }
 
-/* SCROLLBAR */
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background-color: #333; border-radius: 10px; }

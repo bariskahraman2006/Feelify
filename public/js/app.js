@@ -1,8 +1,7 @@
-// public/js/app.js - FINAL SÜRÜM (Help Button Fix)
 
 document.addEventListener('DOMContentLoaded', async () => {
     
-    // 1. VERİLERİ YÜKLE
+    
     await loadUserProfile();
     await loadSavedPlaylists();
     
@@ -10,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadStats();
     }
 
-    // 2. ANA FONKSİYON BUTONLARI
+   
     const generateBtn = document.getElementById('generate-button');
     const cameraBtn = document.getElementById('camera-button');
     const goBackBtn = document.getElementById('go-back-button');
@@ -18,41 +17,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (generateBtn) generateBtn.addEventListener('click', generateMelody);
     
-    if (cameraBtn) {
-        cameraBtn.addEventListener('click', () => {
-            initCamera();
-            document.getElementById('prompt-input-wrapper').style.display = 'none';
-            document.getElementById('camera-feed-container').style.display = 'flex';
-        });
-    }
+  if (cameraBtn) {
+    cameraBtn.addEventListener('click', () => {
+        console.log("Camera opened - Hiding button"); 
+        initCamera();
+        
+        
+        document.getElementById('prompt-input-wrapper').style.display = 'none';
+        
+        
+        const genBtn = document.getElementById('generate-button');
+        if (genBtn) {
+            genBtn.style.setProperty('display', 'none', 'important');
+        }
+        
+       
+        document.getElementById('camera-feed-container').style.display = 'flex';
+    });
+}
 
-    if (goBackBtn) {
-        goBackBtn.addEventListener('click', () => {
-            stopCamera();
-            document.getElementById('camera-feed-container').style.display = 'none';
-            document.getElementById('prompt-input-wrapper').style.display = 'flex';
-        });
-    }
+if (goBackBtn) {
+    goBackBtn.addEventListener('click', () => {
+        stopCamera();
+        
+       
+        document.getElementById('camera-feed-container').style.display = 'none';
+        
+        
+        document.getElementById('prompt-input-wrapper').style.display = 'flex';
+        
+       
+        const genBtn = document.getElementById('generate-button');
+        genBtn.style.display = 'block';  
+        genBtn.style.margin = '20px auto 0 auto';  
+    });
+}
     
     if (captureBtn) captureBtn.addEventListener('click', captureMoodWithAI);
 
-    // --- 3. HELP & SUPPORT MODAL KURULUMU (DÜZELTİLDİ) ---
+    
     setupModal();
 
-    // 4. AI MODELLERİNİ YÜKLE
+    
     loadAIModels(); 
 });
 
-// --- MODAL VE DESTEK BUTONU MANTIĞI ---
+
 function setupModal() {
     const modal = document.getElementById("support-modal");
     const closeBtn = document.querySelector(".close-modal");
     const supportForm = document.getElementById("support-form");
     
-    // Hem ana sayfa hem stats sayfası butonlarını seçiyoruz
+    
     const helpBtns = document.querySelectorAll("#help-btn, #help-btn-stats");
 
-    // Bulunan her butona tıklama özelliği ekle
+    
     helpBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -60,21 +79,21 @@ function setupModal() {
         });
     });
 
-    // Kapatma butonu
+    
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
             if (modal) modal.style.display = "none";
         });
     }
 
-    // Pencere dışına tıklayınca kapatma
+    
     if (modal) {
         window.addEventListener('click', (e) => {
             if (e.target == modal) modal.style.display = "none";
         });
     }
 
-    // Form gönderme işlemi
+    
     if (supportForm) {
         supportForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -124,7 +143,7 @@ function setupModal() {
     }
 }
 
-// --- DİĞER FONKSİYONLAR (AYNI KALDI) ---
+
 
 async function loadSavedPlaylists() {
     const lists = document.querySelectorAll('#saved-playlists');
@@ -275,7 +294,16 @@ async function captureMoodWithAI() {
                 input.value = aiText + ` (${Math.round(maxValue*100)}%)`;
             } else { input.value = "Face not detected."; }
             stopCamera(); overlay.remove(); container.style.display = 'none';
+            stopCamera(); 
+overlay.remove(); 
+container.style.display = 'none';
+
+document.getElementById('prompt-input-wrapper').style.display = 'flex';
             document.getElementById('prompt-input-wrapper').style.display = 'flex';
         }, 1000);
+        
+const genBtn = document.getElementById('generate-button');
+genBtn.style.display = 'block';
+genBtn.style.margin = '20px auto 0 auto';
     } catch(e) { stopCamera(); overlay.remove(); alert("AI Error"); }
 }

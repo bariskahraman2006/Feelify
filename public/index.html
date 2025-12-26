@@ -4,13 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Feelify - Your AI Playlist</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
-    <link rel="stylesheet" href="css/style.css"/>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="container">
-      
       <aside class="sidebar-left">
         <div class="logo-area">
           <div class="logo">Feel<span class="logo-accent">ify</span></div>
@@ -19,7 +24,11 @@
         <div class="playlist-section">
           <h2>Your Library</h2>
           <ul id="saved-playlists">
-            <li><span style="color:#b3b3b3; font-size:12px;">Loading playlists...</span></li>
+            <li>
+              <span style="color: #b3b3b3; font-size: 12px"
+                >Loading playlists...</span
+              >
+            </li>
           </ul>
         </div>
       </aside>
@@ -29,14 +38,21 @@
           <h1>What's on your mind?</h1>
 
           <div class="prompt-input-wrapper" id="prompt-input-wrapper">
-            <textarea id="mood-prompt" placeholder="Write about how you feel, what you've been doing..."></textarea>
-            <button id="camera-button" title="Capture your current mood"><i class="fas fa-camera"></i></button>
+            <textarea
+              id="mood-prompt"
+              placeholder="Write about how you feel, what you've been doing..."
+            ></textarea>
+            <button id="camera-button" title="Capture your current mood">
+              <i class="fas fa-camera"></i>
+            </button>
           </div>
 
-          <div id="camera-feed-container" style="display:none;">
-             <button id="go-back-button" class="go-back-button"><i class="fas fa-arrow-left"></i> Back</button>
-             <video id="video-feed" autoplay playsinline></video>
-             <button id="capture-mood-button">CAPTURE EMOTION</button>
+          <div id="camera-feed-container" style="display: none">
+            <button id="go-back-button" class="go-back-button">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <video id="video-feed" autoplay playsinline></video>
+            <button id="capture-mood-button">CAPTURE EMOTION</button>
           </div>
 
           <button id="generate-button">Generate My Melody</button>
@@ -46,58 +62,102 @@
           <h2>Your Current Vibe Playlist</h2>
           <div id="playlist-results">
             <div class="placeholder-card">
-              <p>Your custom playlist will appear here after you write your feelings.</p>
+              <p>
+                Your custom playlist will appear here after you write your
+                feelings.
+              </p>
             </div>
           </div>
         </section>
       </main>
 
       <aside class="sidebar-right">
-        <div class="sidebar-content-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-            <div class="profile-area">
-                <img src="" alt="Profile" class="avatar" id="user-avatar" style="display:none;" />
-                <div class="avatar" id="user-avatar-placeholder" style="background:#333; display:flex; align-items:center; justify-content:center;">
-                    <i class="fas fa-user" style="color:#1ed760; font-size:30px"></i>
-                </div>
-                <div class="username" id="user-name">Loading...</div>
+        <div
+          class="sidebar-content-wrapper"
+          style="
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          "
+        >
+          <div class="profile-area">
+            <img
+              src=""
+              alt="Profile"
+              class="avatar"
+              id="user-avatar"
+              style="display: none"
+            />
+            <div
+              class="avatar"
+              id="user-avatar-placeholder"
+              style="
+                background: #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <i
+                class="fas fa-user"
+                style="color: #1ed760; font-size: 30px"
+              ></i>
             </div>
+            <div class="username" id="user-name">Loading...</div>
+          </div>
 
-            <nav class="action-buttons">
-                <a href="/" class="btn-pill active">
-                    <i class="fas fa-home" style="margin-right:8px;"></i> Main Menu
-                </a>
-                <a href="/stats" class="btn-pill">Spotify Stats</a>
-                <a href="#" class="btn-pill">Account Settings</a>
-                <a href="#" id="help-btn" class="btn-pill">Help & Support</a>
-            </nav>
+          <nav class="action-buttons">
+            <a href="/" class="btn-pill active">
+              <i class="fas fa-home" style="margin-right: 8px"></i> Main Menu
+            </a>
+            <a href="/stats" class="btn-pill">Spotify Stats</a>
+            <a href="#" id="help-btn" class="btn-pill">Help & Support</a>
+          </nav>
         </div>
 
-        <div class="logout-wrapper" style="width: 100%;">
-            <a href="/logout" class="btn-pill logout">Log Out</a>
+        <div class="logout-wrapper" style="width: 100%">
+          <a href="/logout" class="btn-pill logout">Log Out</a>
         </div>
       </aside>
     </div>
 
     <div id="support-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2 style="color:white; text-align:center; margin-bottom:20px;">Need Help?</h2>
-            <p style="color:#b3b3b3; text-align:center; margin-bottom:20px;">Contact us regarding your account or feedback.</p>
-            
-            <form id="support-form">
-                <div class="form-group">
-                    <label>Your Email (Spotify)</label>
-                    <input type="email" id="user-email" readonly placeholder="Fetching email..." style="opacity:0.7; cursor:not-allowed;">
-                </div>
-                
-                <div class="form-group">
-                    <label>Message</label>
-                    <textarea id="support-msg" rows="4" placeholder="Type your message here..."></textarea>
-                </div>
-                
-                <button type="submit" class="btn-pill modal-send-btn">Send Message</button>
-            </form>
-        </div>
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2 style="color: white; text-align: center; margin-bottom: 20px">
+          Need Help?
+        </h2>
+        <p style="color: #b3b3b3; text-align: center; margin-bottom: 20px">
+          Contact us regarding your account or feedback.
+        </p>
+
+        <form id="support-form">
+          <div class="form-group">
+            <label>Your Email (Spotify)</label>
+            <input
+              type="email"
+              id="user-email"
+              readonly
+              placeholder="Fetching email..."
+              style="opacity: 0.7; cursor: not-allowed"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Message</label>
+            <textarea
+              id="support-msg"
+              rows="4"
+              placeholder="Type your message here..."
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn-pill modal-send-btn">
+            Send Message
+          </button>
+        </form>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
