@@ -1,3 +1,4 @@
+// routes/api.js - ESKİ SAĞLAM YAPI + 2 PLAYLIST ÖZELLİĞİ + GÜNCEL STATS
 const express = require('express');
 const router = express.Router();
 const SpotifyWebApi = require('spotify-web-api-node');
@@ -5,7 +6,18 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Playlist = require('../models/Playlist');
 
-// Helper function to get Spotify Client
+// --- İZİNLER (Kişisel verileri çekmek için ŞART) ---
+const SCOPES = [
+    'user-read-private',
+    'user-read-email',
+    'playlist-read-private',
+    'playlist-read-collaborative',
+    'playlist-modify-public',
+    'playlist-modify-private',
+    'user-top-read' // En çok dinlenenleri çekmek için
+];
+
+// --- TOKEN YÖNETİMİ ---
 async function getSpotifyClient(req, res) {
     if (!req.cookies.spotify_user_id) return null;
     const user = await User.findOne({ 'spotifyData.spotifyUserId': req.cookies.spotify_user_id });
@@ -23,9 +35,8 @@ async function getSpotifyClient(req, res) {
     if (new Date() > user.spotifyData.expiresAt) {
         try {
             const data = await spotifyApi.refreshAccessToken();
-            const newToken = data.body['access_token'];
-            spotifyApi.setAccessToken(newToken);
-            user.spotifyData.accessToken = newToken;
+            spotifyApi.setAccessToken(data.body['access_token']);
+            user.spotifyData.accessToken = data.body['access_token'];
             user.spotifyData.expiresAt = new Date(Date.now() + 3600 * 1000);
             await user.save();
         } catch (err) { return null; }
@@ -33,9 +44,21 @@ async function getSpotifyClient(req, res) {
     return { api: spotifyApi, user: user };
 }
 
-// Spotify Callback Route
+// --- LOGIN (İzinleri Almak İçin) ---
+router.get('/login', (req, res) => {
+    const spotifyApi = new SpotifyWebApi({
+        clientId: process.env.SPOTIPY_CLIENT_ID,
+        clientSecret: process.env.SPOTIPY_CLIENT_SECRET,
+        redirectUri: process.env.SPOTIPY_REDIRECT_URI
+    });
+    res.redirect(spotifyApi.createAuthorizeURL(SCOPES));
+});
+
+// --- CALLBACK ---
 router.get('/', async (req, res) => {
     const code = req.query.code;
+    if (!code) return res.redirect('/api/login'); // Kod yoksa logine at
+
     const spotifyApi = new SpotifyWebApi({
         clientId: process.env.SPOTIPY_CLIENT_ID,
         clientSecret: process.env.SPOTIPY_CLIENT_SECRET,
@@ -44,9 +67,7 @@ router.get('/', async (req, res) => {
 
     try {
         const data = await spotifyApi.authorizationCodeGrant(code);
-        const accessToken = data.body['access_token'];
-        const refreshToken = data.body['refresh_token'];
-        spotifyApi.setAccessToken(accessToken);
+        spotifyApi.setAccessToken(data.body['access_token']);
         const me = await spotifyApi.getMe();
 
         await User.findOneAndUpdate(
@@ -54,23 +75,24 @@ router.get('/', async (req, res) => {
             {
                 username: me.body.display_name,
                 email: me.body.email,
+                image: me.body.images?.[0]?.url,
                 spotifyData: {
                     spotifyUserId: me.body.id,
-                    accessToken: accessToken,
-                    refreshToken: refreshToken,
+                    accessToken: data.body['access_token'],
+                    refreshToken: data.body['refresh_token'],
                     expiresAt: new Date(Date.now() + 3600 * 1000)
                 }
             },
             { upsert: true, new: true }
         );
 
-        res.cookie('spotify_user_id', me.body.id, { maxAge: 3600000 });
-        res.cookie('access_token', accessToken, { maxAge: 3600000 });
+        res.cookie('spotify_user_id', me.body.id, { maxAge: 3600000, path: '/' });
+        res.cookie('access_token', data.body['access_token'], { maxAge: 3600000, path: '/' });
         res.redirect('/');
     } catch (err) { res.status(500).send(`Error: ${err.message}`); }
 });
 
-// Profile Info
+// --- PROFILE ---
 router.get('/me', async (req, res) => {
     const client = await getSpotifyClient(req, res);
     if (!client) return res.status(401).json({ error: 'Unauthorized' });
@@ -80,81 +102,84 @@ router.get('/me', async (req, res) => {
     } catch (e) { res.json({ username: 'User', image: null, email: null }); }
 });
 
-// User Playlists
+// --- USER PLAYLISTS ---
 router.get('/my-playlists', async (req, res) => {
     const client = await getSpotifyClient(req, res);
     if (!client) return res.json([]); 
-    
     try {
         const data = await client.api.getUserPlaylists({ limit: 50 });
         res.json(data.body.items);
+    } catch (e) { res.json([]); }
+});
+
+// --- YARDIMCI FONKSİYON: ARAMA İLE PLAYLIST OLUŞTURMA ---
+// Senin eski kodundaki mantığı buraya taşıdım.
+async function createPlaylistFromSearch(client, moodName, keywords, originalText) {
+    let myArtists = [];
+    try {
+        // En çok dinlenenleri al (short_term = Son 4 Hafta)
+        const topArtists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
+        myArtists = topArtists.body.items.map(a => a.name);
     } catch (e) {
-        console.error("Playlist Error:", e);
-        res.json([]); 
+        console.log("Artist verisi çekilemedi.");
     }
-});
 
-// --- UPDATED SUPPORT EMAIL ROUTE (FULLY ENGLISH & TICKET FORMAT) ---
-router.post('/send-support', async (req, res) => {
-    const { userEmail, message } = req.body;
+    // Eğer sanatçı yoksa varsayılanlar
+    if (myArtists.length === 0) myArtists = ["The Weeknd", "Coldplay", "Arctic Monkeys", "Duman"];
 
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: 'feelify22@gmail.com',
-            pass: process.env.EMAIL_PASS
-        }
+    let finalTracks = [];
+    myArtists.sort(() => 0.5 - Math.random()); // Karıştır
+
+    // 1. Senin sanatçılarını kullanarak arama yap (Kişiselleştirme)
+    for (let artist of myArtists.slice(0, 5)) {
+        const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+        try {
+            // Örn: artist:Duman sad
+            const res = await client.api.searchTracks(`artist:"${artist}" ${keyword}`, { limit: 2 });
+            if (res.body.tracks.items.length > 0) finalTracks.push(...res.body.tracks.items);
+            else {
+                // Bulamazsa sadece sanatçıyı ara
+                const fallback = await client.api.searchTracks(`artist:"${artist}"`, { limit: 1 });
+                if (fallback.body.tracks.items.length > 0) finalTracks.push(fallback.body.tracks.items[0]);
+            }
+        } catch (e) {}
+    }
+
+    // 2. Yetmezse genel arama yap (Tamamlayıcı)
+    if(finalTracks.length < 5) {
+        const gen = await client.api.searchTracks(`${keywords[0]} hits`, { limit: 10 });
+        if(gen.body.tracks) finalTracks.push(...gen.body.tracks.items);
+    }
+
+    const trackUris = [...new Set(finalTracks.map(t => t.uri))];
+    if (trackUris.length === 0) return null;
+
+    // Playlist Oluştur
+    const me = await client.api.getMe();
+    const playlist = await client.api.createPlaylist(me.body.id, { 
+        name: `Feelify: ${moodName}`, description: `Mood: ${originalText}`, public: true 
     });
+    
+    await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
 
-    const ticketId = Math.floor(1000 + Math.random() * 9000);
+    // DB Kayıt
+    const newPlaylist = new Playlist({
+        userId: client.user._id,
+        playlistName: `Feelify: ${moodName}`,
+        spotifyPlaylistId: playlist.body.id,
+        tracks: finalTracks.map(t => ({ trackName: t.name, artistName: t.artists[0].name, spotifyTrackId: t.id })),
+        aiAnalysis: { sourceMood: originalText, dominantGenres: [moodName] }
+    });
+    await newPlaylist.save();
 
-    // 1. ADMIN NOTIFICATION (Sent to you)
-    const adminMailOptions = {
-        from: `"${userEmail} (Support Ticket)" <feelify22@gmail.com>`,
-        to: 'feelify22@gmail.com',
-        replyTo: userEmail,
-        subject: `🚨 [TICKET #${ticketId}] New Support Request from: ${userEmail}`,
-        text: `You have received a new support ticket!\n\nUser: ${userEmail}\n\nMessage:\n${message}\n\n--- Ticket ID: ${ticketId} ---`
+    return {
+        name: moodName,
+        url: playlist.body.external_urls.spotify,
+        image: playlist.body.images?.[0]?.url || null
     };
+}
 
-    // 2. USER AUTO-REPLY (Sent to the user)
-    const userAutoReplyOptions = {
-        from: `"Feelify Support" <feelify22@gmail.com>`,
-        to: userEmail,
-        subject: `Ticket Received! [#${ticketId}] - Feelify Support`,
-        html: `
-            <div style="font-family: 'Montserrat', sans-serif; background-color: #0f0f0f; color: white; padding: 20px; border-radius: 10px;">
-                <h2 style="color: #1ed760;">Hi there!</h2>
-                <p>Thanks for reaching out to <strong>Feelify</strong>. We've received your support ticket (<strong>#${ticketId}</strong>) and our team will get back to you as soon as possible.</p>
-                <hr style="border: 0; border-top: 1px solid #333;">
-                <p style="font-size: 12px; color: #b3b3b3;">Your message: <br> "<em>${message}</em>"</p>
-                <p style="color: #1ed760; font-weight: bold;">Keep vibing!</p>
-            </div>
-        `
-    };
-
-    try {
-        await transporter.sendMail(adminMailOptions);
-        await transporter.sendMail(userAutoReplyOptions);
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Mail sending error:", error);
-        res.status(500).json({ success: false, error: "Mail could not be sent." });
-    }
-});
-
-// Stats Route
-router.get('/stats', async (req, res) => {
-    const client = await getSpotifyClient(req, res);
-    if (!client) return res.status(401).json({ error: 'Unauthorized' });
-    try {
-        const tracks = await client.api.getMyTopTracks({ limit: 10, time_range: 'short_term' });
-        const artists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
-        res.json({ tracks: tracks.body.items, artists: artists.body.items });
-    } catch (e) { res.status(500).json({ error: 'No data' }); }
-});
-
-// AI Melody Generation
+// --- GENERATE MELODY (2 PLAYLIST DESTEKLİ) ---
 router.post('/generate-melody', async (req, res) => {
     const { feeling_text } = req.body;
     const client = await getSpotifyClient(req, res);
@@ -162,64 +187,82 @@ router.post('/generate-melody', async (req, res) => {
 
     try {
         const text = feeling_text.toLowerCase();
-        let myArtists = [];
-        try {
-            const topArtists = await client.api.getMyTopArtists({ limit: 10, time_range: 'medium_term' });
-            myArtists = topArtists.body.items.map(a => a.name);
-        } catch (e) {}
-        if (myArtists.length === 0) myArtists = ["The Weeknd", "Coldplay", "Arctic Monkeys"];
+        let configs = [];
 
-        let moodName = "Daily Mix";
-        let keywords = ["best"];
-        if (text.includes('sad') || text.includes('üzgün')) { moodName = "Sad Vibes"; keywords = ["acoustic", "sad"]; }
-        else if (text.includes('happy') || text.includes('mutlu')) { moodName = "Happy Hits"; keywords = ["upbeat", "pop"]; }
-        else if (text.includes('rock') || text.includes('metal')) { moodName = "Rock Energy"; keywords = ["rock", "metal"]; }
-        else if (text.includes('chill')) { moodName = "Chill Mode"; keywords = ["chill", "lofi"]; }
-
-        let finalTracks = [];
-        myArtists.sort(() => 0.5 - Math.random());
-
-        for (let artist of myArtists.slice(0, 5)) {
-            const keyword = keywords[Math.floor(Math.random() * keywords.length)];
-            try {
-                const res = await client.api.searchTracks(`artist:"${artist}" ${keyword}`, { limit: 2 });
-                if (res.body.tracks.items.length > 0) finalTracks.push(...res.body.tracks.items);
-                else {
-                    const fallback = await client.api.searchTracks(`artist:"${artist}"`, { limit: 1 });
-                    if (fallback.body.tracks.items.length > 0) finalTracks.push(fallback.body.tracks.items[0]);
-                }
-            } catch (e) {}
+        // MANTIK: Kötü hissediyorsa 2 tane, İyi hissediyorsa 1 tane
+        if (text.includes('sad') || text.includes('üzgün') || text.includes('bad') || text.includes('cry') || text.includes('depress')) {
+            // 1. Ayna (Hüzünlü)
+            configs.push({ name: "Sad Vibes 🌧️", keywords: ["acoustic", "sad", "slow", "piano"] });
+            // 2. İlaç (Mutlu)
+            configs.push({ name: "Mood Booster 🚀", keywords: ["happy", "upbeat", "dance", "energy"] });
+        }
+        else if (text.includes('angry') || text.includes('kızgın')) {
+            configs.push({ name: "Release Anger 🔥", keywords: ["metal", "rock", "hard"] });
+            configs.push({ name: "Calm Down 🍃", keywords: ["chill", "ambient", "calm"] });
+        }
+        else {
+            // Pozitif / Normal
+            let name = "Daily Mix";
+            let keywords = ["best", "hits"];
+            
+            if (text.includes('happy') || text.includes('mutlu')) { name = "Happy Hits"; keywords = ["pop", "summer", "party"]; }
+            else if (text.includes('chill')) { name = "Chill Mode"; keywords = ["lofi", "jazz", "chill"]; }
+            
+            configs.push({ name: name, keywords: keywords });
         }
 
-        if(finalTracks.length === 0) {
-            const gen = await client.api.searchTracks(text, { limit: 5 });
-            if(gen.body.tracks) finalTracks.push(...gen.body.tracks.items);
+        const results = [];
+        for (let conf of configs) {
+            // Helper fonksiyonu çağır
+            const result = await createPlaylistFromSearch(client, conf.name, conf.keywords, feeling_text);
+            if (result) results.push(result);
         }
 
-        const trackUris = [...new Set(finalTracks.map(t => t.uri))];
-        if (trackUris.length === 0) return res.status(400).json({ success: false, error: "No tracks found." });
+        if (results.length === 0) return res.status(400).json({ success: false, error: "No tracks found." });
 
-        const me = await client.api.getMe();
-        const playlist = await client.api.createPlaylist(me.body.id, { 
-            name: `Feelify: ${moodName}`, description: `Mood: ${feeling_text}`, public: true 
-        });
-        await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
-
-        const newPlaylist = new Playlist({
-            userId: client.user._id,
-            playlistName: `Feelify: ${moodName}`,
-            spotifyPlaylistId: playlist.body.id,
-            tracks: finalTracks.map(t => ({ trackName: t.name, artistName: t.artists[0].name, spotifyTrackId: t.id })),
-            aiAnalysis: { sourceMood: feeling_text, dominantGenres: [moodName] }
-        });
-        await newPlaylist.save();
-
-        res.json({ success: true, playlist_url: playlist.body.external_urls.spotify, mood: moodName });
+        // Frontend'e array (dizi) dönüyoruz
+        res.json({ success: true, playlists: results });
 
     } catch (error) { 
         console.error(error);
         res.status(500).json({ success: false, error: "Error occurred." });
     }
+});
+
+// --- STATS (GÜNCEL: short_term) ---
+router.get('/stats', async (req, res) => {
+    const client = await getSpotifyClient(req, res);
+    if (!client) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        // short_term = Son 4 Hafta
+        const tracks = await client.api.getMyTopTracks({ limit: 10, time_range: 'short_term' });
+        const artists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
+        res.json({ tracks: tracks.body.items, artists: artists.body.items });
+    } catch (e) { res.status(500).json({ error: 'No data' }); }
+});
+
+// --- SUPPORT MAIL ---
+router.post('/send-support', async (req, res) => {
+    const { userEmail, message } = req.body;
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: 'feelify22@gmail.com', pass: process.env.EMAIL_PASS }
+    });
+    const ticketId = Math.floor(1000 + Math.random() * 9000);
+
+    try {
+        await transporter.sendMail({
+            from: `"${userEmail}" <feelify22@gmail.com>`, to: 'feelify22@gmail.com', replyTo: userEmail,
+            subject: `🚨 [TICKET #${ticketId}] Support: ${userEmail}`,
+            text: `User: ${userEmail}\nMessage:\n${message}\nTicket ID: ${ticketId}`
+        });
+        await transporter.sendMail({
+            from: `"Feelify Support" <feelify22@gmail.com>`, to: userEmail,
+            subject: `Ticket Received! [#${ticketId}]`,
+            html: `<h3>Hi!</h3><p>We received your ticket #${ticketId}.</p><p>Message: ${message}</p>`
+        });
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 module.exports = router;

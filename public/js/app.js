@@ -232,27 +232,75 @@ async function generateMelody() {
     const input = document.getElementById('mood-prompt');
     const resultDiv = document.getElementById('playlist-results');
     const btn = document.getElementById('generate-button');
+    
     if (input.value.length < 3) { alert("Please write something!"); return; }
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-    resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is analyzing...</p></div>';
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing Mood...';
+    // Kullanıcıya güzel bir mesaj verelim
+    resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is analyzing your feelings...</p></div>';
+
     try {
         const res = await fetch('/api/generate-melody', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ feeling_text: input.value })
         });
         const data = await res.json();
+
         if (data.success) {
+            // --- YENİ KISIM: YAN YANA KARTLAR ---
+            
+            let cardsHtml = '';
+            
+            // Gelen playlistleri döngüye al (1 veya 2 tane olabilir)
+            data.playlists.forEach(playlist => {
+                // Eğer "Mood Booster" ise özel bir renk verelim (Sarı/Turuncu gibi)
+                let borderStyle = 'border-top: 5px solid #1DB954;'; // Yeşil (Standart)
+                let titleStyle = 'color: #1DB954;';
+                
+                if (playlist.name.includes('Booster') || playlist.name.includes('Happy')) {
+                    borderStyle = 'border-top: 5px solid #ff9900;'; // Turuncu (Enerji)
+                    titleStyle = 'color: #ff9900;';
+                }
+
+                cardsHtml += `
+                    <div class="result-card" style="flex: 1; background: #181818; padding: 25px; border-radius: 10px; text-align: center; ${borderStyle} box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+                        <div style="font-size: 35px; margin-bottom: 10px;">
+                            ${playlist.name.includes('Booster') ? '🚀' : '🎵'}
+                        </div>
+                        <h3 style="margin-bottom:10px; color:white; font-size: 18px;">${playlist.name}</h3>
+                        <p style="color:#b3b3b3; font-size:12px; margin-bottom:20px;">
+                            ${playlist.name.includes('Booster') ? 'To lift your spirits!' : 'Matches your vibe.'}
+                        </p>
+                        <a href="${playlist.url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:10px 25px; border-radius:50px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.2s;">
+                            Play on Spotify
+                        </a>
+                    </div>
+                `;
+            });
+
+            // Container'ı Flex yap ki yan yana gelsinler
             resultDiv.innerHTML = `
-                <div class="placeholder-card" style="border: 2px solid #1DB954; text-align: center; padding: 30px; display:flex; flex-direction:column; align-items:center;">
-                    <div style="font-size: 40px; color: #1DB954; margin-bottom: 10px;"><i class="fas fa-check-circle"></i></div>
-                    <h3 style="margin-bottom:10px; color:white;">Playlist Ready!</h3>
-                    <p style="margin-bottom:20px; color:#b3b3b3;">Mood: <strong style="color:#1ed760;">${data.mood}</strong></p>
-                    <a href="${data.playlist_url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:12px 30px; border-radius:50px; text-decoration:none; font-weight:bold; font-size:16px; transition:0.2s;">Open in Spotify</a>
-                </div>`;
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 100%;">
+                    ${cardsHtml}
+                </div>
+            `;
+
+            // Listeyi yenile ki sol menüye de gelsin
             setTimeout(loadSavedPlaylists, 2000);
-        } else { resultDiv.innerHTML = `<p style="color:red">Error: ${data.error}</p>`; }
-    } catch (e) { resultDiv.innerHTML = `<p style="color:red">Connection error.</p>`; } 
-    finally { btn.disabled = false; btn.innerHTML = 'GENERATE MY MELODY'; }
+
+        } else { 
+            resultDiv.innerHTML = `<p style="color:red">Error: ${data.error}</p>`; 
+        }
+    } catch (e) { 
+        console.error(e);
+        resultDiv.innerHTML = `<p style="color:red">Connection error.</p>`; 
+    } 
+    finally { 
+        btn.disabled = false; 
+        btn.innerHTML = 'GENERATE MY MELODY'; 
+    }
 }
 
 async function loadAIModels() {
