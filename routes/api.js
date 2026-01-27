@@ -229,16 +229,48 @@ router.post('/generate-melody', async (req, res) => {
     }
 });
 
-// --- STATS (GÜNCEL: short_term) ---
+// --- STATS (GÜNCEL: DİNAMİK GRAFİK VERİSİ) ---
 router.get('/stats', async (req, res) => {
     const client = await getSpotifyClient(req, res);
     if (!client) return res.status(401).json({ error: 'Unauthorized' });
+
     try {
-        // short_term = Son 4 Hafta
+        // 1. Spotify Verileri
         const tracks = await client.api.getMyTopTracks({ limit: 10, time_range: 'short_term' });
         const artists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
-        res.json({ tracks: tracks.body.items, artists: artists.body.items });
-    } catch (e) { res.status(500).json({ error: 'No data' }); }
+
+        // 2. Mood Analizi (Dinamik Sayım)
+        let typeCounts = {}; // Örn: { 'Lift': 5, 'Mirror': 3, 'General': 2 }
+        let total = 0;
+
+        if (client.user.moodStats && client.user.moodStats.length > 0) {
+            client.user.moodStats.forEach(stat => {
+                // Veritabanındaki tipi al (Yoksa 'Other' de)
+                const type = stat.chosenPlaylistType || 'General Preference';
+                
+                // Sözlükte varsa arttır, yoksa 1 yap
+                if (typeCounts[type]) {
+                    typeCounts[type]++;
+                } else {
+                    typeCounts[type] = 1;
+                }
+                total++;
+            });
+        }
+
+        res.json({ 
+            tracks: tracks.body.items, 
+            artists: artists.body.items,
+            moodData: {
+                breakdown: typeCounts, // Frontend'e tüm dağılımı gönderiyoruz
+                total: total
+            }
+        });
+
+    } catch (e) { 
+        console.error("Stats Error:", e);
+        res.status(500).json({ error: 'No data' }); 
+    }
 });
 
 // --- SUPPORT MAIL ---
@@ -263,6 +295,49 @@ router.post('/send-support', async (req, res) => {
         });
         res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false }); }
+});
+
+// --- YENİ ROTA: BEĞENİ KAYDETME (STATS İÇİN) ---
+router.post('/like-playlist', async (req, res) => {
+    const { mood, playlistName } = req.body;
+    
+    // Kullanıcıyı bul
+    const client = await getSpotifyClient(req, res);
+    if (!client || !client.user) return res.status(401).json({ success: false });
+
+    try {
+        // Tercih Tipini Belirle (Analiz Kısmı)
+        let type = "Neutral";
+        
+        // Eğer üzgünse ve neşeli listeyi beğendiyse -> "Lift" (Mod Yükseltme)
+        if ((mood.includes('sad') || mood.includes('üzgün')) && (playlistName.includes('Booster') || playlistName.includes('Happy'))) {
+            type = "Lift"; 
+        }
+        // Eğer üzgünse ve hüzünlü listeyi beğendiyse -> "Mirror" (Ayna)
+        else if ((mood.includes('sad') || mood.includes('üzgün')) && (playlistName.includes('Sad') || playlistName.includes('Melancholy'))) {
+            type = "Mirror";
+        }
+        // Diğer durumlar için genel kayıt
+        else {
+            type = "General Preference";
+        }
+
+        // Veritabanına it (push)
+        client.user.moodStats.push({
+            originalMood: mood,
+            chosenPlaylistType: type,
+            playlistName: playlistName
+        });
+
+        await client.user.save();
+        
+        console.log(`[STATS] Kayıt eklendi: Mood=${mood}, Type=${type}`);
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error("Like Error:", error);
+        res.status(500).json({ success: false });
+    }
 });
 
 module.exports = router;
