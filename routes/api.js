@@ -1,4 +1,4 @@
-// routes/api.js - ESKİ SAĞLAM YAPI + 2 PLAYLIST ÖZELLİĞİ + GÜNCEL STATS
+// routes/api.js - FINAL (Stats Fixed to Short Term + Pro Playlist Logic)
 const express = require('express');
 const router = express.Router();
 const SpotifyWebApi = require('spotify-web-api-node');
@@ -6,7 +6,7 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Playlist = require('../models/Playlist');
 
-// --- İZİNLER (Kişisel verileri çekmek için ŞART) ---
+// --- SCOPES ---
 const SCOPES = [
     'user-read-private',
     'user-read-email',
@@ -14,10 +14,28 @@ const SCOPES = [
     'playlist-read-collaborative',
     'playlist-modify-public',
     'playlist-modify-private',
-    'user-top-read' // En çok dinlenenleri çekmek için
+    'user-top-read'
 ];
 
-// --- TOKEN YÖNETİMİ ---
+// --- MOOD DICTIONARY (ENGLISH ONLY) ---
+const MOOD_DICTIONARY = {
+    sad: ['sad', 'bad', 'terrible', 'awful', 'disgusting', 'depress', 'cry', 'lonely', 'broken', 'hurt', 'pain', 'grief', 'down', 'blue', 'unhappy', 'miss', 'sorry', 'tired of', 'hopeless', 'gloomy', 'miserable', 'upset', 'heartbroken'],
+    angry: ['angry', 'mad', 'furious', 'rage', 'hate', 'annoyed', 'irritated', 'pissed', 'sucks', 'damn', 'fight', 'scream', 'violent', 'hostile', 'offended', 'bitter'],
+    happy: ['happy', 'good', 'great', 'awesome', 'excited', 'joy', 'love', 'wonderful', 'best', 'party', 'dance', 'fun', 'cheerful', 'delighted', 'glad', 'amazing', 'fantastic', 'excellent'],
+    chill: ['chill', 'relax', 'calm', 'tired', 'sleep', 'study', 'focus', 'coffee', 'rain', 'peace', 'quiet', 'meditate', 'bored', 'lazy', 'nap', 'reading']
+};
+
+// --- HELPER: MOOD ANALYSIS ---
+function analyzeMood(text) {
+    const lowerText = text.toLowerCase();
+    if (MOOD_DICTIONARY.sad.some(word => lowerText.includes(word))) return 'sad';
+    if (MOOD_DICTIONARY.angry.some(word => lowerText.includes(word))) return 'angry';
+    if (MOOD_DICTIONARY.happy.some(word => lowerText.includes(word))) return 'happy';
+    if (MOOD_DICTIONARY.chill.some(word => lowerText.includes(word))) return 'chill';
+    return 'neutral';
+}
+
+// --- HELPER: GET SPOTIFY CLIENT ---
 async function getSpotifyClient(req, res) {
     if (!req.cookies.spotify_user_id) return null;
     const user = await User.findOne({ 'spotifyData.spotifyUserId': req.cookies.spotify_user_id });
@@ -44,7 +62,7 @@ async function getSpotifyClient(req, res) {
     return { api: spotifyApi, user: user };
 }
 
-// --- LOGIN (İzinleri Almak İçin) ---
+// --- LOGIN & CALLBACK ---
 router.get('/login', (req, res) => {
     const spotifyApi = new SpotifyWebApi({
         clientId: process.env.SPOTIPY_CLIENT_ID,
@@ -54,22 +72,18 @@ router.get('/login', (req, res) => {
     res.redirect(spotifyApi.createAuthorizeURL(SCOPES));
 });
 
-// --- CALLBACK ---
 router.get('/', async (req, res) => {
     const code = req.query.code;
-    if (!code) return res.redirect('/api/login'); // Kod yoksa logine at
-
+    if (!code) return res.redirect('/api/login');
     const spotifyApi = new SpotifyWebApi({
         clientId: process.env.SPOTIPY_CLIENT_ID,
         clientSecret: process.env.SPOTIPY_CLIENT_SECRET,
         redirectUri: process.env.SPOTIPY_REDIRECT_URI
     });
-
     try {
         const data = await spotifyApi.authorizationCodeGrant(code);
         spotifyApi.setAccessToken(data.body['access_token']);
         const me = await spotifyApi.getMe();
-
         await User.findOneAndUpdate(
             { 'spotifyData.spotifyUserId': me.body.id },
             {
@@ -85,142 +99,169 @@ router.get('/', async (req, res) => {
             },
             { upsert: true, new: true }
         );
-
         res.cookie('spotify_user_id', me.body.id, { maxAge: 3600000, path: '/' });
         res.cookie('access_token', data.body['access_token'], { maxAge: 3600000, path: '/' });
         res.redirect('/');
-    } catch (err) { res.status(500).send(`Error: ${err.message}`); }
+    } catch (err) { res.status(500).send("Login Error."); }
 });
 
-// --- PROFILE ---
-router.get('/me', async (req, res) => {
-    const client = await getSpotifyClient(req, res);
-    if (!client) return res.status(401).json({ error: 'Unauthorized' });
+// --- HELPER: AUDIO FEATURES FILTERING ---
+async function filterTracksByMood(client, tracks, moodCategory) {
+    if (!tracks || tracks.length === 0) return [];
     try {
-        const me = await client.api.getMe();
-        res.json({ username: me.body.display_name, image: me.body.images?.[0]?.url || null, email: me.body.email });
-    } catch (e) { res.json({ username: 'User', image: null, email: null }); }
-});
+        const trackIds = tracks.map(t => t.id).slice(0, 50); 
+        const data = await client.api.getAudioFeaturesForTracks(trackIds);
+        const features = data.body.audio_features;
 
-// --- USER PLAYLISTS ---
-router.get('/my-playlists', async (req, res) => {
-    const client = await getSpotifyClient(req, res);
-    if (!client) return res.json([]); 
-    try {
-        const data = await client.api.getUserPlaylists({ limit: 50 });
-        res.json(data.body.items);
-    } catch (e) { res.json([]); }
-});
+        const filteredTracks = tracks.filter((track, index) => {
+            const f = features[index];
+            if (!f) return false;
 
-// --- YARDIMCI FONKSİYON: ARAMA İLE PLAYLIST OLUŞTURMA ---
-// Senin eski kodundaki mantığı buraya taşıdım.
-async function createPlaylistFromSearch(client, moodName, keywords, originalText) {
-    let myArtists = [];
-    try {
-        // En çok dinlenenleri al (short_term = Son 4 Hafta)
-        const topArtists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
-        myArtists = topArtists.body.items.map(a => a.name);
+            // SAD: Düşük Enerji (Sakin) ve Düşük Valence (Hüzünlü)
+            if (moodCategory === 'sad') {
+                return f.energy <= 0.6 && f.valence <= 0.4;
+            }
+            // HAPPY / LIFT: Yüksek Valence (Mutlu)
+            else if (moodCategory === 'happy' || moodCategory === 'lift') {
+                return f.valence >= 0.5;
+            }
+            // ANGRY: Çok Yüksek Enerji (Agresif)
+            else if (moodCategory === 'angry') {
+                return f.energy >= 0.7; 
+            }
+            // CHILL: Düşük Enerji
+            else if (moodCategory === 'chill') {
+                return f.energy <= 0.5;
+            }
+            return true; 
+        });
+        return filteredTracks;
     } catch (e) {
-        console.log("Artist verisi çekilemedi.");
+        console.error("Audio Features Error:", e);
+        return tracks; 
     }
+}
 
-    // Eğer sanatçı yoksa varsayılanlar
-    if (myArtists.length === 0) myArtists = ["The Weeknd", "Coldplay", "Arctic Monkeys", "Duman"];
+// --- HELPER: CREATE PLAYLIST (ARTIST CATALOG STRATEGY) ---
+async function createPlaylistFromSearch(client, moodConfig, feelingText) {
+    let myArtists = [];
+    
+    // 1. ADIM: Kullanıcının Top Artist'lerini çek (Önce kısa vade, yetmezse orta vade)
+    try {
+        let topData = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
+        if (topData.body.items.length < 3) {
+            topData = await client.api.getMyTopArtists({ limit: 10, time_range: 'medium_term' });
+        }
+        myArtists = topData.body.items.map(a => ({ id: a.id, name: a.name }));
+    } catch (e) { console.log("Top Artists çekilemedi."); }
 
-    let finalTracks = [];
-    myArtists.sort(() => 0.5 - Math.random()); // Karıştır
+    if (myArtists.length === 0) myArtists = [{id: '1Xyo4u8uXC1ZmMpatF05PJ', name: 'The Weeknd'}, {id: '4gzpq5DPGxSnKTe4SA8HAU', name: 'Coldplay'}]; 
 
-    // 1. Senin sanatçılarını kullanarak arama yap (Kişiselleştirme)
-    for (let artist of myArtists.slice(0, 5)) {
-        const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+    let poolOfTracks = []; 
+
+    // 2. ADIM: Sanatçıların En Popüler Şarkılarını Çek
+    const targetArtists = myArtists.sort(() => 0.5 - Math.random()).slice(0, 5);
+
+    for (let artist of targetArtists) {
         try {
-            // Örn: artist:Duman sad
-            const res = await client.api.searchTracks(`artist:"${artist}" ${keyword}`, { limit: 2 });
-            if (res.body.tracks.items.length > 0) finalTracks.push(...res.body.tracks.items);
-            else {
-                // Bulamazsa sadece sanatçıyı ara
-                const fallback = await client.api.searchTracks(`artist:"${artist}"`, { limit: 1 });
-                if (fallback.body.tracks.items.length > 0) finalTracks.push(fallback.body.tracks.items[0]);
+            const topTracksRes = await client.api.getArtistTopTracks(artist.id, 'TR');
+            if (topTracksRes.body.tracks) {
+                poolOfTracks.push(...topTracksRes.body.tracks);
             }
         } catch (e) {}
     }
 
-    // 2. Yetmezse genel arama yap (Tamamlayıcı)
-    if(finalTracks.length < 5) {
-        const gen = await client.api.searchTracks(`${keywords[0]} hits`, { limit: 10 });
-        if(gen.body.tracks) finalTracks.push(...gen.body.tracks.items);
+    // 3. ADIM: Yedek Arama
+    if (poolOfTracks.length < 5) {
+        try {
+            const searchRes = await client.api.searchTracks(`${moodConfig.keywords[0]} music`, { limit: 20 });
+            if (searchRes.body.tracks) poolOfTracks.push(...searchRes.body.tracks.items);
+        } catch(e) {}
     }
 
-    const trackUris = [...new Set(finalTracks.map(t => t.uri))];
+    // Tekrarları Temizle
+    poolOfTracks = poolOfTracks.filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i);
+
+    // 4. ADIM: LABORATUVAR ANALİZİ
+    let analysisCategory = 'neutral';
+    const nameLower = moodConfig.name.toLowerCase();
+    
+    if (nameLower.includes('sad') || nameLower.includes('vibes')) analysisCategory = 'sad';
+    else if (nameLower.includes('booster') || nameLower.includes('happy')) analysisCategory = 'happy'; 
+    else if (nameLower.includes('anger') || nameLower.includes('release')) analysisCategory = 'angry';
+    else if (nameLower.includes('calm') || nameLower.includes('chill')) analysisCategory = 'chill';
+
+    let finalTracks = await filterTracksByMood(client, poolOfTracks, analysisCategory);
+
+    // Yedek Plan
+    if (finalTracks.length < 5) {
+        finalTracks = poolOfTracks.sort(() => 0.5 - Math.random()).slice(0, 10);
+    } else {
+        finalTracks = finalTracks.sort(() => 0.5 - Math.random()).slice(0, 15);
+    }
+
+    // 5. ADIM: PLAYLIST OLUŞTUR
+    const trackUris = finalTracks.map(t => t.uri);
     if (trackUris.length === 0) return null;
 
-    // Playlist Oluştur
     const me = await client.api.getMe();
     const playlist = await client.api.createPlaylist(me.body.id, { 
-        name: `Feelify: ${moodName}`, description: `Mood: ${originalText}`, public: true 
+        name: `Feelify: ${moodConfig.name}`, description: `Mood: ${feelingText}`, public: true 
     });
     
     await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
 
-    // DB Kayıt
     const newPlaylist = new Playlist({
         userId: client.user._id,
-        playlistName: `Feelify: ${moodName}`,
+        playlistName: `Feelify: ${moodConfig.name}`,
         spotifyPlaylistId: playlist.body.id,
         tracks: finalTracks.map(t => ({ trackName: t.name, artistName: t.artists[0].name, spotifyTrackId: t.id })),
-        aiAnalysis: { sourceMood: originalText, dominantGenres: [moodName] }
+        aiAnalysis: { sourceMood: feelingText, dominantGenres: [moodConfig.name] }
     });
     await newPlaylist.save();
 
     return {
-        name: moodName,
+        name: moodConfig.name,
         url: playlist.body.external_urls.spotify,
         image: playlist.body.images?.[0]?.url || null
     };
 }
 
-// --- GENERATE MELODY (2 PLAYLIST DESTEKLİ) ---
+// --- GENERATE MELODY ROUTE ---
 router.post('/generate-melody', async (req, res) => {
     const { feeling_text } = req.body;
     const client = await getSpotifyClient(req, res);
     if (!client) return res.status(401).json({ success: false, error: 'Session closed' });
 
     try {
-        const text = feeling_text.toLowerCase();
+        const detectedMood = analyzeMood(feeling_text); 
         let configs = [];
 
-        // MANTIK: Kötü hissediyorsa 2 tane, İyi hissediyorsa 1 tane
-        if (text.includes('sad') || text.includes('üzgün') || text.includes('bad') || text.includes('cry') || text.includes('depress')) {
-            // 1. Ayna (Hüzünlü)
-            configs.push({ name: "Sad Vibes 🌧️", keywords: ["acoustic", "sad", "slow", "piano"] });
-            // 2. İlaç (Mutlu)
-            configs.push({ name: "Mood Booster 🚀", keywords: ["happy", "upbeat", "dance", "energy"] });
+        if (detectedMood === 'sad') {
+            configs.push({ name: "Sad Vibes 🌧️", keywords: ["sad"] });
+            configs.push({ name: "Mood Booster 🚀", keywords: ["happy"] });
         }
-        else if (text.includes('angry') || text.includes('kızgın')) {
-            configs.push({ name: "Release Anger 🔥", keywords: ["metal", "rock", "hard"] });
-            configs.push({ name: "Calm Down 🍃", keywords: ["chill", "ambient", "calm"] });
+        else if (detectedMood === 'angry') {
+            configs.push({ name: "Release Anger 🔥", keywords: ["metal"] });
+            configs.push({ name: "Calm Down 🍃", keywords: ["chill"] });
+        }
+        else if (detectedMood === 'happy') {
+            configs.push({ name: "Happy Hits 🎉", keywords: ["pop"] });
+        }
+        else if (detectedMood === 'chill') {
+            configs.push({ name: "Chill Mode ☕", keywords: ["chill"] });
         }
         else {
-            // Pozitif / Normal
-            let name = "Daily Mix";
-            let keywords = ["best", "hits"];
-            
-            if (text.includes('happy') || text.includes('mutlu')) { name = "Happy Hits"; keywords = ["pop", "summer", "party"]; }
-            else if (text.includes('chill')) { name = "Chill Mode"; keywords = ["lofi", "jazz", "chill"]; }
-            
-            configs.push({ name: name, keywords: keywords });
+            configs.push({ name: "Daily Mix 🎵", keywords: ["mix"] });
         }
 
         const results = [];
         for (let conf of configs) {
-            // Helper fonksiyonu çağır
-            const result = await createPlaylistFromSearch(client, conf.name, conf.keywords, feeling_text);
+            const result = await createPlaylistFromSearch(client, conf, feeling_text);
             if (result) results.push(result);
         }
 
         if (results.length === 0) return res.status(400).json({ success: false, error: "No tracks found." });
-
-        // Frontend'e array (dizi) dönüyoruz
         res.json({ success: true, playlists: results });
 
     } catch (error) { 
@@ -229,115 +270,67 @@ router.post('/generate-melody', async (req, res) => {
     }
 });
 
-// --- STATS (GÜNCEL: DİNAMİK GRAFİK VERİSİ) ---
+// --- LIKE PLAYLIST ROUTE ---
+router.post('/like-playlist', async (req, res) => {
+    const { mood, playlistName } = req.body;
+    const client = await getSpotifyClient(req, res);
+    if (!client || !client.user) return res.status(401).json({ success: false });
+
+    try {
+        let type = "General Preference";
+        const detectedMood = analyzeMood(mood);
+        const p = playlistName.toLowerCase();
+
+        if (detectedMood === 'sad') {
+            if (p.includes('booster') || p.includes('happy') || p.includes('energy')) type = "Lift";
+            else if (p.includes('sad') || p.includes('vibes') || p.includes('melancholy')) type = "Mirror";
+        }
+        else if (detectedMood === 'angry') {
+            if (p.includes('calm') || p.includes('chill') || p.includes('down')) type = "Lift";
+            else if (p.includes('anger') || p.includes('release') || p.includes('metal') || p.includes('rock')) type = "Mirror";
+        }
+
+        client.user.moodStats.push({ originalMood: mood, chosenPlaylistType: type, playlistName: playlistName });
+        await client.user.save();
+        
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ success: false }); }
+});
+
+// --- STATS ROUTE (GÜNCELLENDİ: short_term) ---
 router.get('/stats', async (req, res) => {
     const client = await getSpotifyClient(req, res);
     if (!client) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
-        // 1. Spotify Verileri
+        // İŞTE BURASI DÜZELTİLDİ: Sadece 'short_term' (Son 4 Hafta) verisi çekiliyor.
         const tracks = await client.api.getMyTopTracks({ limit: 10, time_range: 'short_term' });
         const artists = await client.api.getMyTopArtists({ limit: 10, time_range: 'short_term' });
 
-        // 2. Mood Analizi (Dinamik Sayım)
-        let typeCounts = {}; // Örn: { 'Lift': 5, 'Mirror': 3, 'General': 2 }
-        let total = 0;
+        let moodBreakdown = { 'Sad': {}, 'Angry': {}, 'Total': 0 };
 
         if (client.user.moodStats && client.user.moodStats.length > 0) {
             client.user.moodStats.forEach(stat => {
-                // Veritabanındaki tipi al (Yoksa 'Other' de)
-                const type = stat.chosenPlaylistType || 'General Preference';
-                
-                // Sözlükte varsa arttır, yoksa 1 yap
-                if (typeCounts[type]) {
-                    typeCounts[type]++;
-                } else {
-                    typeCounts[type] = 1;
-                }
-                total++;
+                const type = stat.chosenPlaylistType;
+                const moodCategory = analyzeMood(stat.originalMood || "");
+
+                if (moodCategory === 'sad') moodBreakdown['Sad'][type] = (moodBreakdown['Sad'][type] || 0) + 1;
+                else if (moodCategory === 'angry') moodBreakdown['Angry'][type] = (moodBreakdown['Angry'][type] || 0) + 1;
+                moodBreakdown['Total']++;
             });
         }
-
-        res.json({ 
-            tracks: tracks.body.items, 
-            artists: artists.body.items,
-            moodData: {
-                breakdown: typeCounts, // Frontend'e tüm dağılımı gönderiyoruz
-                total: total
-            }
-        });
-
-    } catch (e) { 
-        console.error("Stats Error:", e);
-        res.status(500).json({ error: 'No data' }); 
-    }
+        res.json({ tracks: tracks.body.items, artists: artists.body.items, moodData: moodBreakdown });
+    } catch (e) { res.status(500).json({ error: 'No data' }); }
 });
 
-// --- SUPPORT MAIL ---
-router.post('/send-support', async (req, res) => {
+// --- OTHER ROUTES ---
+router.get('/me', async (req, res) => { const c=await getSpotifyClient(req,res); if(!c) return res.status(401).json({}); try{const m=await c.api.getMe(); res.json({username:m.body.display_name, image:m.body.images?.[0]?.url, email:m.body.email});}catch(e){res.json({});} });
+router.get('/my-playlists', async (req, res) => { const c=await getSpotifyClient(req,res); if(!c) return res.json([]); try{const d=await c.api.getUserPlaylists({limit:50}); res.json(d.body.items);}catch(e){res.json([]);} });
+router.post('/send-support', async (req, res) => { 
     const { userEmail, message } = req.body;
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: 'feelify22@gmail.com', pass: process.env.EMAIL_PASS }
-    });
-    const ticketId = Math.floor(1000 + Math.random() * 9000);
-
-    try {
-        await transporter.sendMail({
-            from: `"${userEmail}" <feelify22@gmail.com>`, to: 'feelify22@gmail.com', replyTo: userEmail,
-            subject: `🚨 [TICKET #${ticketId}] Support: ${userEmail}`,
-            text: `User: ${userEmail}\nMessage:\n${message}\nTicket ID: ${ticketId}`
-        });
-        await transporter.sendMail({
-            from: `"Feelify Support" <feelify22@gmail.com>`, to: userEmail,
-            subject: `Ticket Received! [#${ticketId}]`,
-            html: `<h3>Hi!</h3><p>We received your ticket #${ticketId}.</p><p>Message: ${message}</p>`
-        });
-        res.json({ success: true });
-    } catch (error) { res.status(500).json({ success: false }); }
-});
-
-// --- YENİ ROTA: BEĞENİ KAYDETME (STATS İÇİN) ---
-router.post('/like-playlist', async (req, res) => {
-    const { mood, playlistName } = req.body;
-    
-    // Kullanıcıyı bul
-    const client = await getSpotifyClient(req, res);
-    if (!client || !client.user) return res.status(401).json({ success: false });
-
-    try {
-        // Tercih Tipini Belirle (Analiz Kısmı)
-        let type = "Neutral";
-        
-        // Eğer üzgünse ve neşeli listeyi beğendiyse -> "Lift" (Mod Yükseltme)
-        if ((mood.includes('sad') || mood.includes('üzgün')) && (playlistName.includes('Booster') || playlistName.includes('Happy'))) {
-            type = "Lift"; 
-        }
-        // Eğer üzgünse ve hüzünlü listeyi beğendiyse -> "Mirror" (Ayna)
-        else if ((mood.includes('sad') || mood.includes('üzgün')) && (playlistName.includes('Sad') || playlistName.includes('Melancholy'))) {
-            type = "Mirror";
-        }
-        // Diğer durumlar için genel kayıt
-        else {
-            type = "General Preference";
-        }
-
-        // Veritabanına it (push)
-        client.user.moodStats.push({
-            originalMood: mood,
-            chosenPlaylistType: type,
-            playlistName: playlistName
-        });
-
-        await client.user.save();
-        
-        console.log(`[STATS] Kayıt eklendi: Mood=${mood}, Type=${type}`);
-        res.json({ success: true });
-
-    } catch (error) {
-        console.error("Like Error:", error);
-        res.status(500).json({ success: false });
-    }
+    const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } });
+    try { await transporter.sendMail({ from: userEmail, to: process.env.ADMIN_EMAIL, subject: `Support: ${userEmail}`, text: message }); res.json({ success: true }); } 
+    catch (e) { res.status(500).json({ success: false }); }
 });
 
 module.exports = router;
