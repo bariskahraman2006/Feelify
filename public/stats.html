@@ -1,145 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Feelify - My Stats</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="css/stats-style.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Sidebar ve Profil Fotoğrafı Düzeltmeleri */
+        .sidebar-left, .sidebar-left ul, .sidebar-left li, .sidebar-left a {
+            font-family: 'Montserrat', sans-serif !important;
+        }
+        .sidebar-left h2 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #b3b3b3;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        .avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover; /* Resmi düzgün kırpar */
+            border: 3px solid #1ed760;
+            margin-bottom: 15px;
+        }
+    </style>
   </head>
   <body>
     <div class="dashboard-window">
-      
       <aside class="sidebar-left">
-        <div class="logo-area">
-          <div class="logo">Feel<span class="logo-accent">ify</span></div>
-          <div class="slogan">Your feelings, your melody.</div>
-        </div>
-
-        <div class="playlist-section">
-          <h2>Your Library</h2>
-          <ul id="saved-playlists">
-            <li>
-              <span style="color: #b3b3b3; font-size: 12px">Loading playlists...</span>
-            </li>
-          </ul>
-        </div>
+        <div class="logo-area"><div class="logo">Feel<span class="logo-accent">ify</span></div><div class="slogan">Your feelings, your melody.</div></div>
+        <div class="playlist-section"><h2>Your Library</h2><ul id="saved-playlists"><li><span style="color: #b3b3b3; font-size: 12px">Loading...</span></li></ul></div>
       </aside>
 
       <main class="main-content">
-        <div class="stats-header">
-          <h2>Your Vibe Check 🎧</h2>
-        </div>
-
+        <div class="stats-header"><h2>Your Monthly Vibe Check 🎧</h2></div>
         <div id="loading-stats" style="text-align: center; color: #b3b3b3; margin-top: 50px">
-          <i class="fas fa-spinner fa-spin fa-2x"></i>
-          <p>Loading your data...</p>
+          <i class="fas fa-spinner fa-spin fa-2x"></i><p>Loading your data...</p>
         </div>
-
-        <div id="tabs-container" style="display: none; justify-content: center; margin-bottom: 30px;">
-            <div style="background: #282828; padding: 5px; border-radius: 50px; display: inline-flex; gap: 10px;">
-                <button onclick="switchTab('spotify')" id="tab-spotify" style="background: #1DB954; color: black; border: none; padding: 10px 30px; border-radius: 40px; font-weight: bold; cursor: pointer; transition: 0.3s;">
-                    🎵 Top Tracks
-                </button>
-                <button onclick="switchTab('mood')" id="tab-mood" style="background: transparent; color: #b3b3b3; border: none; padding: 10px 30px; border-radius: 40px; font-weight: bold; cursor: pointer; transition: 0.3s;">
-                    🧠 Mood Analysis
-                </button>
-            </div>
+        <div class="stats-grid" id="stats-content" style="display: none">
+          <div class="stat-card"><h3>Top 10 Songs</h3><div class="list-container" id="tracks-list"></div></div>
+          <div class="stat-card"><h3>Top 10 Artists</h3><div class="list-container" id="artists-list"></div></div>
         </div>
-
-        <div id="view-spotify-stats" style="display: none; width: 100%; flex-wrap: wrap; gap: 20px; justify-content: center;">
-            <div class="stat-card" style="flex: 1; min-width: 300px; background: #181818; padding: 20px; border-radius: 10px;">
-                <h3 style="color:white; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;">Top 10 Songs</h3>
-                <div id="tracks-list" class="scroll-list"></div>
-            </div>
-            <div class="stat-card" style="flex: 1; min-width: 300px; background: #181818; padding: 20px; border-radius: 10px;">
-                <h3 style="color:white; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;">Top 10 Artists</h3>
-                <div id="artists-list" class="scroll-list"></div>
-            </div>
-        </div>
-
-        <div id="view-mood-stats" style="display: none; width: 100%;">
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
-                
-                <div class="chart-card" style="flex: 1; min-width: 300px; max-width: 400px; background: #181818; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    <h3 style="color: #b3b3b3; font-size: 16px; margin-bottom: 15px;">
-                        When You Are <span style="color: #3498db; font-weight: bold;">Sad 🌧️</span>
-                    </h3>
-                    <div style="position: relative; height: 200px; width: 100%;">
-                        <canvas id="sadChart"></canvas>
-                    </div>
-                    <p id="sad-desc" style="color: #777; font-size: 12px; margin-top: 15px; min-height: 40px;">No data yet.</p>
-                </div>
-
-                <div class="chart-card" style="flex: 1; min-width: 300px; max-width: 400px; background: #181818; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    <h3 style="color: #b3b3b3; font-size: 16px; margin-bottom: 15px;">
-                        When You Are <span style="color: #e74c3c; font-weight: bold;">Angry 🔥</span>
-                    </h3>
-                    <div style="position: relative; height: 200px; width: 100%;">
-                        <canvas id="angryChart"></canvas>
-                    </div>
-                    <p id="angry-desc" style="color: #777; font-size: 12px; margin-top: 15px; min-height: 40px;">No data yet.</p>
-                </div>
-
-            </div>
-            
-            <div style="text-align: center; margin-top: 30px; color: #555; font-size: 12px;">
-                * Charts analyze your choices between "Mirroring" (staying in mood) vs "Lifting" (changing mood).
-            </div>
-        </div>
-
       </main>
 
       <aside class="sidebar-right">
         <div class="sidebar-content-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
           <div class="profile-area">
             <img src="" alt="Profile" class="avatar" id="user-avatar" style="display: none" />
-            <div class="avatar" id="user-avatar-placeholder" style="background: #333; display: flex; align-items: center; justify-content: center;">
-              <i class="fas fa-user" style="color: #1ed760; font-size: 30px"></i>
-            </div>
+            <div class="avatar" id="user-avatar-placeholder" style="background: #333; display: flex; align-items: center; justify-content: center;"><i class="fas fa-user" style="color: #1ed760; font-size: 30px"></i></div>
             <div class="username" id="user-name">Loading...</div>
           </div>
-
           <nav class="action-buttons">
-            <a href="/" class="btn-pill">
-              <i class="fas fa-home" style="margin-right: 8px"></i> Main Menu
-            </a>
-            <a href="#" class="btn-pill active">Spotify Stats</a>
+            <a href="/" class="btn-pill"><i class="fas fa-home" style="margin-right: 8px"></i> Main Menu</a>
+            <a href="/stats" class="btn-pill active">Spotify Stats</a>
+            <a href="/emotion-chart" class="btn-pill">Emotion Chart</a>
             <a href="#" id="help-btn-stats" class="btn-pill">Help & Support</a>
           </nav>
         </div>
-
-        <div class="logout-wrapper" style="width: 100%">
-          <a href="/logout" class="btn-pill logout">Log Out</a>
-        </div>
+        <div class="logout-wrapper" style="width: 100%"><a href="/logout" class="btn-pill logout">Log Out</a></div>
       </aside>
     </div>
 
-    <div id="support-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-modal">×</span>
-        <h2 style="color: white; text-align: center; margin-bottom: 20px">Need Help?</h2>
-        <form id="support-form">
-          <div class="form-group">
-            <label>Your Email</label>
-            <input type="email" id="user-email" readonly style="opacity: 0.7; cursor: not-allowed" />
-          </div>
-          <div class="form-group">
-            <label>Message</label>
-            <textarea id="support-msg" rows="4"></textarea>
-          </div>
-          <button type="submit" class="btn-pill modal-send-btn">Send Message</button>
-        </form>
-      </div>
-    </div>
+    <div id="support-modal" class="modal"><div class="modal-content"><span class="close-modal">×</span><h2 style="color: white; text-align: center; margin-bottom: 20px">Need Help?</h2><form id="support-form"><div class="form-group"><label>Your Email</label><input type="email" id="user-email" readonly style="opacity: 0.7; cursor: not-allowed" /></div><div class="form-group"><label>Message</label><textarea id="support-msg" rows="4"></textarea></div><button type="submit" class="btn-pill modal-send-btn">Send Message</button></form></div></div>
 
     <script src="js/app.js"></script>
   </body>
