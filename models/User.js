@@ -8,24 +8,14 @@ const SpotifyDataSchema = new Schema({
     expiresAt: { type: Date, required: true }
 }, { _id: false });
 
-// --- YENİ: BEĞENİ GEÇMİŞİ İÇİN ŞEMA ---
-const MoodStatSchema = new Schema({
-    originalMood: String,       // Örn: "I feel sad"
-    chosenPlaylistType: String, // "Lift" (Mod Yükseltici) veya "Mirror" (Ayna)
-    playlistName: String,       // Örn: "Sad Vibes"
-    timestamp: { type: Date, default: Date.now }
-}, { _id: false });
-
 const UserSchema = new Schema({
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     image: { type: String },
     passwordHash: { type: String, required: false },
     createdAt: { type: Date, default: Date.now },
-    spotifyData: { type: SpotifyDataSchema, required: true },
-    
-    // --- BURASI EKLENDİ ---
-    moodStats: [MoodStatSchema] 
+    spotifyData: { type: SpotifyDataSchema, required: true }
+    /* moodStats tamamen kaldırıldı */
 });
 
 module.exports = mongoose.model('User', UserSchema, 'Users');

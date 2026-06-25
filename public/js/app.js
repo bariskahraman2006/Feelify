@@ -39,8 +39,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAIModels(); 
 });
 
-// --- YARDIMCI FONKSİYONLAR ---
-
 function setupModal() {
     const modal = document.getElementById("support-modal");
     const closeBtn = document.querySelector(".close-modal");
@@ -125,17 +123,10 @@ async function generateMelody() {
                     vibeIcon = '🔥'; 
                 }
 
-                // Tırnak işaretlerini kaçış karakteriyle düzelt
-                const safeMood = input.value.replace(/'/g, "\\'");
-                const safeName = playlist.name.replace(/'/g, "\\'");
-
+                // Tek kart olacağı için max-width eklendi ki devasa olmasın
                 cardsHtml += `
-                    <div class="result-card" style="position: relative; flex: 1; background: #181818; padding: 25px; border-radius: 10px; text-align: center; ${borderStyle} box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+                    <div class="result-card" style="position: relative; flex: 1; min-width: 250px; max-width: 350px; background: #181818; padding: 25px; border-radius: 10px; text-align: center; ${borderStyle} box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
                         
-                        <div onclick="saveLike(this, '${safeMood}', '${safeName}')" style="position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 22px; color: #b3b3b3; transition: 0.2s;" title="This matches my vibe!">
-                            <i class="far fa-heart"></i>
-                        </div>
-
                         <div style="font-size: 35px; margin-bottom: 10px;">${vibeIcon}</div>
                         <h3 style="margin-bottom:10px; color:white; font-size: 18px;">${playlist.name}</h3>
                         <p style="color:#b3b3b3; font-size:12px; margin-bottom:20px;">Matches your vibe.</p>
@@ -155,31 +146,6 @@ async function generateMelody() {
     finally { btn.disabled = false; btn.innerHTML = 'GENERATE MY MELODY'; }
 }
 
-async function saveLike(btn, mood, playlistName) {
-    const icon = btn.querySelector('i');
-    if (icon.classList.contains('fas')) return; // Zaten beğenilmişse dur
-    
-    // Görsel Efekt
-    icon.classList.remove('far'); 
-    icon.classList.add('fas'); 
-    icon.style.color = '#e91e63'; 
-    icon.classList.add('fa-beat');
-
-    try { 
-        await fetch('/api/like-playlist', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ mood: mood, playlistName: playlistName }) 
-        }); 
-    } 
-    catch (e) { 
-        // Hata olursa geri al
-        icon.classList.remove('fas', 'fa-beat'); 
-        icon.classList.add('far'); 
-        icon.style.color = '#b3b3b3'; 
-    }
-}
-
 async function loadSavedPlaylists() {
     const lists = document.querySelectorAll('#saved-playlists');
     if (lists.length === 0) return;
@@ -193,7 +159,6 @@ async function loadSavedPlaylists() {
             data.forEach(pl => {
                 const imgUrl = pl.images && pl.images.length > 0 ? pl.images[0].url : null;
                 const li = document.createElement('li');
-                // FONT VE TASARIM DÜZELTMESİ KORUNDU
                 li.innerHTML = `
                     <a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item" style="display:flex; align-items:center; text-decoration:none; color:#b3b3b3; margin-bottom:10px; padding:8px; border-radius:8px; transition:0.2s; font-family: 'Montserrat', sans-serif;">
                         <img src="${imgUrl}" class="playlist-cover ${!imgUrl ? 'placeholder' : ''}" style="width:40px; height:40px; border-radius:6px; object-fit:cover; margin-right:15px;">
