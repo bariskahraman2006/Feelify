@@ -6,7 +6,6 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Playlist = require('../models/Playlist');
 
-// --- YENİ EKLENDİ: GEMINI AI ---
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const SCOPES = [
@@ -57,9 +56,7 @@ async function getSpotifyClient(req, res) {
     return { api: spotifyApi, user: user };
 }
 
-// --- GERÇEK YAPAY ZEKA (GEMINI) ALGORİTMASI ---
 async function createPlaylistWithGemini(client, feelingText) {
-    // 1. Kullanıcının Müzik Zevkini Çek
     let topArtists = [];
     let userGenres = new Set();
     try {
@@ -71,14 +68,13 @@ async function createPlaylistWithGemini(client, feelingText) {
     const artistString = topArtists.slice(0, 10).join(', ') || "Popular artists";
     const genreString = Array.from(userGenres).slice(0, 10).join(', ') || "Mixed genres";
 
-    // 2. Gemini'ye Emir Ver (Prompt Engineering)
-    // Sadece JSON formatında gerçek şarkı isimleri istiyoruz.
+    // AI'dan 25 şarkı istiyoruz ki harf hataları vs. elenince elimizde net 15 kalsın
     const prompt = `You are an expert music curator. 
     The user is feeling: "${feelingText}". 
     Their favorite artists are: ${artistString}. 
     Their favorite genres are: ${genreString}. 
     
-    Task: Create a playlist of 15 real, existing songs that perfectly match their current feeling and align with their musical taste. 
+    Task: Create a playlist of 25 real, existing songs that perfectly match their current feeling and align with their musical taste. 
     
     IMPORTANT RULE: Return ONLY a valid JSON array of objects. Do not include markdown formatting like \`\`\`json. Do not include any extra text.
     Format exactly like this:
@@ -86,7 +82,6 @@ async function createPlaylistWithGemini(client, feelingText) {
       {"artist": "Artist Name", "song": "Song Name"}
     ]`;
 
-    // 3. Gemini ile İletişim Kur
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     let aiSongs = [];
@@ -94,42 +89,34 @@ async function createPlaylistWithGemini(client, feelingText) {
     try {
         const result = await model.generateContent(prompt);
         let text = result.response.text();
-        
-        // Markdown vb. varsa temizle ve JSON'a çevir
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         aiSongs = JSON.parse(text);
-    } catch (e) {
+    } catch (e) { 
         console.error("Gemini Parse Error:", e);
-        return null; // AI saçmalarsa veya hata verirse durdur.
+        return null; 
     }
 
-    // 4. Gemini'nin Önerdiği Şarkıları Spotify'da Bul
     let trackUris = [];
     let savedTracksInfo = [];
 
     for (let item of aiSongs) {
+        // Spotify'da başarılı şekilde 15 şarkı bulduğunda aramayı sonlandır
+        if (trackUris.length >= 15) break;
+
         try {
-            // Şarkı adını ve sanatçıyı aynı anda aratarak nokta atışı buluyoruz.
             const searchStr = `track:${item.song} artist:${item.artist}`;
             const searchRes = await client.api.searchTracks(searchStr, { limit: 1 });
             
             if (searchRes.body.tracks && searchRes.body.tracks.items.length > 0) {
                 const track = searchRes.body.tracks.items[0];
                 trackUris.push(track.uri);
-                savedTracksInfo.push({
-                    trackName: track.name,
-                    artistName: track.artists[0].name,
-                    spotifyTrackId: track.id
-                });
+                savedTracksInfo.push({ trackName: track.name, artistName: track.artists[0].name, spotifyTrackId: track.id });
             }
-        } catch (e) {
-            console.log(`Failed to find on Spotify: ${item.song}`);
-        }
+        } catch (e) {}
     }
 
     if (trackUris.length === 0) return null;
 
-    // 5. Çalma Listesini İsmiyle Oluştur
     const me = await client.api.getMe();
     const detectedMood = analyzeMood(feelingText);
     
@@ -147,7 +134,15 @@ async function createPlaylistWithGemini(client, feelingText) {
     
     await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
 
-    // 6. Veritabanına (MongoDB) Kaydet
+    // Oluşturulan Playlistin Kapağını Çekme
+    let imageUrl = null;
+    try {
+        const plRes = await client.api.getPlaylist(playlist.body.id);
+        if (plRes.body.images && plRes.body.images.length > 0) {
+            imageUrl = plRes.body.images[0].url;
+        }
+    } catch(e) {}
+
     const newPlaylist = new Playlist({
         userId: client.user._id,
         playlistName: `Feelify: ${playlistName}`,
@@ -157,10 +152,9 @@ async function createPlaylistWithGemini(client, feelingText) {
     });
     await newPlaylist.save();
 
-    return { name: playlistName, url: playlist.body.external_urls.spotify, image: null };
+    return { name: playlistName, url: playlist.body.external_urls.spotify, image: imageUrl };
 }
 
-// --- API ROTASI (Güncellendi) ---
 router.post('/generate-melody', async (req, res) => {
     const { feeling_text } = req.body;
     const client = await getSpotifyClient(req, res);
@@ -169,7 +163,6 @@ router.post('/generate-melody', async (req, res) => {
     try {
         const text = feeling_text.toLowerCase();
         
-        // Lvbel C5 Easter Egg (Korundu)
         if (text.includes('a-a-a-a') || text.includes('lvbel') || text.includes('c5')) {
             try {
                 const lvbelTracks = await client.api.searchTracks('artist:Lvbel C5', { limit: 10 });
@@ -181,19 +174,16 @@ router.post('/generate-melody', async (req, res) => {
             } catch (e) {}
         }
 
-        // Bütün işi Gemini'ye bırakıyoruz
         const result = await createPlaylistWithGemini(client, feeling_text);
         
         if (!result) return res.status(400).json({ success: false, error: "AI couldn't generate matching tracks." });
         res.json({ success: true, playlists: [result] });
 
     } catch (error) { 
-        console.error(error);
+        console.error("Generate Melody Error:", error);
         res.status(500).json({ success: false, error: "Error occurred with AI Engine." }); 
     }
 });
-
-// ... (stats, emotion-analysis, mail vb. diğer rotalar aynı kalıyor)
 
 router.get('/stats', async (req, res) => {
     const client = await getSpotifyClient(req, res);
@@ -250,7 +240,33 @@ router.get('/emotion-analysis', async (req, res) => {
 });
 
 router.get('/me', async (req, res) => { const c=await getSpotifyClient(req,res); if(!c) return res.status(401).json({}); try{const m=await c.api.getMe(); res.json({username:m.body.display_name, image:m.body.images?.[0]?.url, email:m.body.email});}catch(e){res.json({});} });
-router.get('/my-playlists', async (req, res) => { const c=await getSpotifyClient(req,res); if(!c) return res.json([]); try{const d=await c.api.getUserPlaylists({limit:50}); res.json(d.body.items);}catch(e){res.json([]);} });
+// --- TÜM PLAYLISTLERİ ÇEKME (Pagination Eklendi) ---
+router.get('/my-playlists', async (req, res) => { 
+    const c = await getSpotifyClient(req, res); 
+    if (!c) return res.json([]); 
+    
+    try {
+        let allPlaylists = [];
+        let limit = 50;
+        let offset = 0;
+        
+        // İlk 50 listeyi çek
+        let data = await c.api.getUserPlaylists({ limit: limit, offset: offset });
+        allPlaylists = allPlaylists.concat(data.body.items);
+        
+        // Eğer 50'den fazla liste varsa (next url doluysa), bitene kadar çekmeye devam et
+        // Sonsuz döngüyü önlemek için maksimum 500 playlist sınırında durduruyoruz
+        while (data.body.next && offset < 500) { 
+            offset += limit;
+            data = await c.api.getUserPlaylists({ limit: limit, offset: offset });
+            allPlaylists = allPlaylists.concat(data.body.items);
+        }
+        
+        res.json(allPlaylists);
+    } catch (e) {
+        res.json([]);
+    } 
+});
 
 router.post('/send-support', async (req, res) => {
     const { userEmail, message } = req.body;

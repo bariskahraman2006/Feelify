@@ -3,159 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feelify - Emotion Chart</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <title>Feelify - AI Chart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="css/stats-style.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        body, div, ul, li, a, p, h1, h2, h3, span {
-            font-family: 'Montserrat', sans-serif !important;
-        }
-
-        .sidebar-left {
-            overflow: hidden !important; 
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        .logo-area { flex-shrink: 0; }
-
-        .playlist-section {
-            flex: 1; 
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; 
-            margin-top: 20px;
-        }
-
-        .sidebar-left h2 {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #b3b3b3;
-            margin-bottom: 15px;
-            font-weight: 700;
-            padding-left: 10px;
-            flex-shrink: 0;
-        }
-
-        .playlist-section ul {
-            list-style: none;
-            padding: 0 10px;
-            margin: 0;
-            flex: 1; 
-            overflow-y: auto; 
-            max-height: none !important; 
-            padding-bottom: 20px; 
-        }
-
-        .playlist-section ul::-webkit-scrollbar { width: 6px; }
-        .playlist-section ul::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        .playlist-section ul::-webkit-scrollbar-track { background: transparent; }
-
-        .playlist-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 10px;
-            border-radius: 5px;
-            transition: background 0.3s;
-            text-decoration: none;
-            color: #b3b3b3;
-            margin-bottom: 2px;
-            cursor: pointer;
-        }
-
-        .playlist-item:hover { background-color: #282828; color: white; }
-
-        .playlist-cover {
-            width: 48px;
-            height: 48px;
-            border-radius: 4px;
-            margin-right: 12px;
-            object-fit: cover;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-
-        .playlist-cover.placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #282828;
-            color: #b3b3b3;
-        }
-
-        .playlist-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .playlist-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 3px;
-        }
-
-        .playlist-count { font-size: 11px; color: #b3b3b3; font-weight: 400; }
-
-        .avatar {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #1ed760;
-            margin-bottom: 15px;
-        }
-    </style>
   </head>
   <body>
     <div class="dashboard-window">
+      
       <aside class="sidebar-left">
-        <div class="logo-area"><div class="logo">Feel<span class="logo-accent">ify</span></div><div class="slogan">Your feelings, your melody.</div></div>
-        <div class="playlist-section"><h2>Your Library</h2><ul id="saved-playlists"><li><span style="color: #b3b3b3; font-size: 12px; padding-left:10px;">Loading...</span></li></ul></div>
+        <div class="logo-area">
+          <div class="logo">Feel<span class="logo-accent">ify</span></div>
+          <div class="slogan">Your feelings, your melody.</div>
+        </div>
+        <div class="playlist-section">
+          <div class="library-header">
+            <h2><i class="fas fa-book-open" style="margin-right: 12px; font-size: 18px;"></i> Your Library</h2>
+          </div>
+          <div class="library-search-container">
+            <input type="text" id="playlist-search" class="library-search-input" placeholder="Search in Playlists">
+          </div>
+          <ul id="saved-playlists">
+            <li><span style="color: #b3b3b3; font-size: 13px; padding-left:10px;">Loading...</span></li>
+          </ul>
+        </div>
       </aside>
 
       <main class="main-content">
-        <div class="stats-header"><h2>🎧 Your Listening Profile</h2></div>
+        <div class="stats-header"><h2>Your Listening Profile</h2></div>
         <div id="loading-emotion" style="text-align: center; color: #b3b3b3; margin-top: 50px">
-          <i class="fas fa-spinner fa-spin fa-2x"></i><p>Analyzing...</p>
+          <i class="fas fa-spinner fa-spin fa-2x"></i><p>Analyzing genres...</p>
         </div>
 
         <div class="stats-grid" id="emotion-content" style="display: none; flex-direction: column;">
           <div class="stat-card" style="width: 100%;">
-            <h3 style="border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px;">Top Genres 🎸</h3>
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 30px;">
-                <div style="flex: 1; min-width: 250px; position: relative; height: 250px;"><canvas id="genreChart"></canvas></div>
-                <div class="list-container" id="genre-list" style="flex: 1; min-width: 250px; max-height: 300px; overflow-y: auto;"></div>
+            <h3>Top Genres 🎸</h3>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 30px; margin-top: 20px;">
+                <div style="flex: 1; min-width: 250px; position: relative; height: 300px;"><canvas id="genreChart"></canvas></div>
+                <div class="list-container" id="genre-list" style="flex: 1; min-width: 250px; max-height: 350px; overflow-y: auto;"></div>
             </div>
           </div>
         </div>
       </main>
 
       <aside class="sidebar-right">
-        <div class="sidebar-content-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
           <div class="profile-area">
             <img src="" alt="Profile" class="avatar" id="user-avatar" style="display: none" />
-            <div class="avatar" id="user-avatar-placeholder" style="background: #333; display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-user" style="color: #1ed760; font-size: 30px"></i>
+            <div class="avatar" id="user-avatar-placeholder" style="background: #282828; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-user" style="color: #b3b3b3; font-size: 30px"></i>
             </div>
             <div class="username" id="user-name">Loading...</div>
           </div>
-          <nav class="action-buttons"><a href="/" class="btn-pill"><i class="fas fa-home" style="margin-right: 8px"></i> Main Menu</a><a href="/stats" class="btn-pill">Spotify Stats</a><a href="/emotion-chart" class="btn-pill active">Emotion Chart</a><a href="#" id="help-btn-emotion" class="btn-pill">Help & Support</a></nav>
+          <nav class="action-buttons">
+            <a href="/" class="btn-pill"><i class="fas fa-home" style="margin-right: 12px; font-size: 16px;"></i> Home</a>
+            <a href="/stats" class="btn-pill"><i class="fas fa-chart-bar" style="margin-right: 12px; font-size: 16px;"></i> Stats</a>
+            <a href="/emotion-chart" class="btn-pill active"><i class="fas fa-brain" style="margin-right: 12px; font-size: 16px;"></i> AI Chart</a>
+            <a href="#" id="help-btn-emotion" class="btn-pill"><i class="fas fa-question-circle" style="margin-right: 12px; font-size: 16px;"></i> Support</a>
+          </nav>
         </div>
         <div class="logout-wrapper" style="width: 100%"><a href="/logout" class="btn-pill logout">Log Out</a></div>
       </aside>
     </div>
 
-    <div id="support-modal" class="modal"><div class="modal-content"><span class="close-modal">×</span><h2 style="color: white; text-align: center; margin-bottom: 20px">Need Help?</h2><form id="support-form"><div class="form-group"><label>Your Email</label><input type="email" id="user-email" readonly style="opacity: 0.7; cursor: not-allowed" /></div><div class="form-group"><label>Message</label><textarea id="support-msg" rows="4"></textarea></div><button type="submit" class="btn-pill modal-send-btn">Send Message</button></form></div></div>
+    <div id="support-modal" class="modal"><div class="modal-content"><span class="close-modal">×</span><h2 style="color: white; text-align: left; margin-bottom: 5px">Need Help?</h2><p style="color: #b3b3b3; text-align: left; margin-bottom: 25px; font-size: 13px;">Contact us regarding your account or feedback.</p><form id="support-form"><div class="form-group"><label>Your Email (Spotify)</label><input type="email" id="user-email" readonly placeholder="Fetching email..." style="opacity: 0.7; cursor: not-allowed" /></div><div class="form-group"><label>Message</label><textarea id="support-msg" rows="4" placeholder="Type your message here..."></textarea></div><button type="submit" class="modal-send-btn">Send Message</button></form></div></div>
 
     <script>
       async function loadEmotionChart() {
@@ -167,17 +79,10 @@
         try {
           const genreRes = await fetch('/api/emotion-analysis');
           const genreData = await genreRes.json();
-
-          if (genreRes.status === 403) {
-             loadingEl.innerHTML = `<p style="color:red">Please Log Out and Log In again.</p>`;
-             return;
-          }
-
+          if (genreRes.status === 403) { loadingEl.innerHTML = `<p style="color:red">Please Log Out and Log In again.</p>`; return; }
           renderGenreChart(genreData.genreData);
-
-          loadingEl.style.display = 'none';
-          contentEl.style.display = 'flex';
-        } catch (e) { console.error(e); loadingEl.innerHTML = '<p style="color: red;">Analysis failed.</p>'; }
+          loadingEl.style.display = 'none'; contentEl.style.display = 'flex';
+        } catch (e) { loadingEl.innerHTML = '<p style="color: red;">Analysis failed.</p>'; }
       }
 
       function renderGenreChart(genreData) {
@@ -185,72 +90,40 @@
           const ctx = document.getElementById('genreChart');
           const listContainer = document.getElementById('genre-list');
           
-          const colors = ['#1ED760', '#06D6A0', '#118AB2', '#073B4C', '#FFD166', '#EF476F', '#7209B7', '#F72585', '#4CC9F0', '#B5179E'];
+          // Koyu temaya uygun, ayırt edici ve canlı yeni renk paleti
+          const colors = ['#1DB954', '#3B82F6', '#EC4899', '#F59E0B', '#8B5CF6', '#14B8A6', '#F43F5E', '#84CC16', '#06B6D4', '#EAB308'];
 
           new Chart(ctx, {
               type: 'doughnut',
-              data: { 
-                  labels: genreData.map(g=>g.label), 
-                  datasets: [{ 
-                      data: genreData.map(g=>g.value), 
-                      backgroundColor: colors, 
-                      borderWidth: 0 
-                  }] 
-              },
-              options: { 
-                  responsive: true, 
-                  maintainAspectRatio: false,
-                  cutout: '60%',
-                  plugins: { legend: { display: false } } 
-              }
+              data: { labels: genreData.map(g=>g.label), datasets: [{ data: genreData.map(g=>g.value), backgroundColor: colors, borderWidth: 0 }] },
+              options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
           });
 
           let listHtml = '<ul style="list-style: none; padding: 0;">';
           genreData.forEach((g, i) => {
               const color = colors[i % colors.length];
-              listHtml += `<li style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
-                  <span style="color:white; font-family:'Montserrat'; font-weight:600; font-size: 13px;">
-                    <span style="color:${color}; margin-right:10px; font-size: 16px;">●</span>${g.label}
+              listHtml += `<li style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #282828; padding-bottom: 8px;">
+                  <span style="color:white; font-family:'Montserrat'; font-weight:600; font-size: 14px;">
+                    <span style="color:${color}; margin-right:12px; font-size: 16px;">●</span>${g.label}
                   </span>
-                  <span style="color:#b3b3b3; font-size:12px;">${g.percentage}%</span></li>`;
+                  <span style="color:#b3b3b3; font-size:13px;">${g.percentage}%</span></li>`;
           });
           listContainer.innerHTML = listHtml + '</ul>';
       }
 
-      async function loadUserProfile() { 
-          try { 
-              const res=await fetch('/api/me'); 
-              const d=await res.json(); 
-              document.getElementById('user-name').innerText=d.username||'User'; 
-              if(d.image) { 
-                  document.getElementById('user-avatar').src=d.image; 
-                  document.getElementById('user-avatar').style.display='block'; 
-                  document.getElementById('user-avatar-placeholder').style.display='none'; 
-              } 
-              document.getElementById('user-email').value=d.email; 
-          } catch(e){} 
-      }
+      // Sidebar ve Profil (Diğer sayfalardaki gibi harici app.js'den çekilebilir ama burada ufak fonksiyonlarla tutulması güvenli)
+      async function loadUserProfile() { try { const res=await fetch('/api/me'); const d=await res.json(); document.getElementById('user-name').innerText=d.username||'User'; if(d.image) { document.getElementById('user-avatar').src=d.image; document.getElementById('user-avatar').style.display='block'; document.getElementById('user-avatar-placeholder').style.display='none'; } document.getElementById('user-email').value=d.email; } catch(e){} }
       
       async function loadSavedPlaylists() { 
           const lists=document.querySelectorAll('#saved-playlists'); 
           if(lists.length===0)return; 
           try{
-              const res=await fetch('/api/my-playlists'); 
-              const data=await res.json(); 
+              const res=await fetch('/api/my-playlists'); const data=await res.json(); 
               lists.forEach(l=>{ 
-                  l.innerHTML=''; 
-                  if(!data||data.length===0){l.innerHTML='<li style="padding:10px; color:#555;">No playlists</li>';return;} 
+                  l.innerHTML=''; if(!data||data.length===0){l.innerHTML='<li style="padding:15px; color:#555;">No playlists</li>';return;} 
                   data.forEach(pl=>{ 
-                      const img=pl.images&&pl.images.length?pl.images[0].url:''; 
-                      const li=document.createElement('li'); 
-                      li.innerHTML = `
-                        <a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item">
-                            <img src="${img}" class="playlist-cover ${!img ? 'placeholder' : ''}">
-                            <div class="playlist-info">
-                                <span class="playlist-name">${pl.name}</span>
-                                <span class="playlist-count">${pl.tracks.total} Songs</span>
-                            </div>
-                        </a>`;
+                      const img=pl.images&&pl.images.length?pl.images[0].url:''; const li=document.createElement('li'); 
+                      li.innerHTML = `<a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item"><img src="${img}" class="playlist-cover ${!img ? 'placeholder' : ''}"><div class="playlist-info"><span class="playlist-name">${pl.name}</span><span class="playlist-count">Playlist • ${pl.tracks.total} Songs</span></div></a>`;
                       l.appendChild(li); 
                   }); 
               }); 
@@ -258,8 +131,22 @@
       }
       
       function setupModal() { const m=document.getElementById('support-modal'); if(m){ document.querySelector('.close-modal').onclick=()=>m.style.display='none'; window.onclick=e=>e.target==m?m.style.display='none':null; document.querySelectorAll('#help-btn-emotion').forEach(b=>b.onclick=e=>{e.preventDefault();m.style.display='flex';}); } if(document.getElementById('support-form')){ document.getElementById('support-form').addEventListener('submit',async(e)=>{e.preventDefault(); const msg=document.getElementById("support-msg").value;const eml=document.getElementById("user-email").value;const btn=document.querySelector('.modal-send-btn');if(msg.length<5){alert("Please describe issue");return;}btn.innerHTML='Sending...';btn.disabled=true;try{const r=await fetch('/api/send-support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userEmail:eml,message:msg})});const d=await r.json();if(d.success){btn.innerHTML='Sent!';setTimeout(()=>{m.style.display="none";btn.innerText="Send Message";btn.disabled=false;},1500);}else{alert("Error");btn.disabled=false;}}catch(err){alert("Error");btn.disabled=false;}});} }
-
-      document.addEventListener('DOMContentLoaded', () => { loadEmotionChart(); setupModal(); });
+      
+      // ANINDA ARAMA EKLENTİSİ (Burası Önemli!)
+      document.addEventListener('DOMContentLoaded', () => { 
+          loadEmotionChart(); setupModal(); 
+          const searchInput = document.getElementById('playlist-search');
+          if (searchInput) {
+              searchInput.addEventListener('input', (e) => {
+                  const term = e.target.value.toLowerCase();
+                  const items = document.querySelectorAll('#saved-playlists li');
+                  items.forEach(item => {
+                      const titleEl = item.querySelector('.playlist-name');
+                      if (titleEl) { item.style.display = titleEl.textContent.toLowerCase().includes(term) ? '' : 'none'; }
+                  });
+              });
+          }
+      });
     </script>
   </body>
 </html>

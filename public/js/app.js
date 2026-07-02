@@ -6,6 +6,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadStats();
     }
 
+    const searchInput = document.getElementById('playlist-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#saved-playlists li');
+            items.forEach(item => {
+                const titleEl = item.querySelector('.playlist-name');
+                if (titleEl) {
+                    const title = titleEl.textContent.toLowerCase();
+                    item.style.display = title.includes(term) ? '' : 'none';
+                }
+            });
+        });
+    }
+
     const generateBtn = document.getElementById('generate-button');
     const cameraBtn = document.getElementById('camera-button');
     const goBackBtn = document.getElementById('go-back-button');
@@ -43,16 +58,9 @@ function setupModal() {
     const modal = document.getElementById("support-modal");
     const closeBtn = document.querySelector(".close-modal");
     const supportForm = document.getElementById("support-form");
-    
     const helpBtns = document.querySelectorAll("#help-btn, #help-btn-stats, #help-btn-emotion");
 
-    helpBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (modal) modal.style.display = "flex";
-        });
-    });
-
+    helpBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.preventDefault(); if (modal) modal.style.display = "flex"; }); });
     if (closeBtn) closeBtn.onclick = () => { if (modal) modal.style.display = "none"; };
     if (modal) window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
 
@@ -64,25 +72,19 @@ function setupModal() {
             const sendBtn = document.querySelector('.modal-send-btn');
             
             if(message.length < 5) { alert("Please describe your issue."); return; }
-
             sendBtn.innerHTML = 'Sending...'; sendBtn.disabled = true;
 
             try {
                 const res = await fetch('/api/send-support', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ userEmail: email, message: message })
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userEmail: email, message: message })
                 });
                 const data = await res.json();
                 if(data.success) {
-                    sendBtn.innerHTML = 'Sent!';
-                    sendBtn.style.backgroundColor = '#1ed760';
+                    sendBtn.innerHTML = 'Sent!'; sendBtn.style.backgroundColor = '#1ed760';
                     setTimeout(() => {
                         if (modal) modal.style.display = "none";
                         document.getElementById("support-msg").value = ""; 
-                        sendBtn.innerText = "Send Message";
-                        sendBtn.style.backgroundColor = "";
-                        sendBtn.disabled = false;
+                        sendBtn.innerText = "Send Message"; sendBtn.style.backgroundColor = ""; sendBtn.disabled = false;
                     }, 1500);
                 } else { alert("Error: " + data.error); sendBtn.innerText = "Try Again"; sendBtn.disabled = false; }
             } catch (err) { alert("Connection failed."); sendBtn.innerText = "Try Again"; sendBtn.disabled = false; }
@@ -99,7 +101,7 @@ async function generateMelody() {
 
     btn.disabled = true; 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing Mood...';
-    resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is analyzing your feelings...</p></div>';
+    resultDiv.innerHTML = '<div class="placeholder-card"><p>AI is generating your perfect playlist...</p></div>';
 
     try {
         const res = await fetch('/api/generate-melody', {
@@ -111,27 +113,19 @@ async function generateMelody() {
             let cardsHtml = '';
             
             data.playlists.forEach(playlist => {
-                let borderStyle = 'border-top: 5px solid #1DB954;'; 
-                let vibeIcon = '🎵';
-                
-                if (playlist.name.includes('Booster') || playlist.name.includes('Happy')) { 
-                    borderStyle = 'border-top: 5px solid #ff9900;'; 
-                    vibeIcon = '🚀'; 
-                } 
-                else if (playlist.name.includes('Anger') || playlist.name.includes('Release')) { 
-                    borderStyle = 'border-top: 5px solid #e74c3c;'; 
-                    vibeIcon = '🔥'; 
-                }
+                // EĞER RESİM YOKSA SPOTIFY GİBİ MÜZİK İKONU GÖSTER
+                const imgHtml = playlist.image 
+                    ? `<img src="${playlist.image}" style="width: 100%; aspect-ratio: 1; border-radius: 6px; object-fit: cover; margin-bottom: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">` 
+                    : `<div style="width: 100%; aspect-ratio: 1; background: #282828; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"><i class="fas fa-music" style="font-size: 60px; color: #b3b3b3;"></i></div>`;
 
-                // Tek kart olacağı için max-width eklendi ki devasa olmasın
+                // BİREBİR SPOTIFY KARTI TASARIMI
                 cardsHtml += `
-                    <div class="result-card" style="position: relative; flex: 1; min-width: 250px; max-width: 350px; background: #181818; padding: 25px; border-radius: 10px; text-align: center; ${borderStyle} box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+                    <div class="result-card" style="background: #181818; padding: 20px; border-radius: 8px; width: 220px; transition: background-color 0.3s;">
+                        ${imgHtml}
+                        <h3 style="margin: 0 0 5px 0; color: white; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;">${playlist.name}</h3>
+                        <p style="margin: 0 0 20px 0; color: #b3b3b3; font-size: 14px; font-weight: 500; text-align: left;">Playlist • Curated by AI</p>
                         
-                        <div style="font-size: 35px; margin-bottom: 10px;">${vibeIcon}</div>
-                        <h3 style="margin-bottom:10px; color:white; font-size: 18px;">${playlist.name}</h3>
-                        <p style="color:#b3b3b3; font-size:12px; margin-bottom:20px;">Matches your vibe.</p>
-                        
-                        <a href="${playlist.url}" target="_blank" class="spotify-button" style="display:inline-block; background:#1DB954; color:black; padding:10px 25px; border-radius:50px; text-decoration:none; font-weight:bold; font-size:14px; transition:0.2s;">
+                        <a href="${playlist.url}" target="_blank" class="spotify-button" style="display: block; text-align: center; background: #1DB954; color: black; padding: 10px 0; border-radius: 500px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.2s;">
                             Play on Spotify
                         </a>
                     </div>
@@ -149,28 +143,28 @@ async function generateMelody() {
 async function loadSavedPlaylists() {
     const lists = document.querySelectorAll('#saved-playlists');
     if (lists.length === 0) return;
-    lists.forEach(l => l.innerHTML = '<li style="padding:15px; color:#b3b3b3; font-size:12px;">Loading...</li>');
+    lists.forEach(l => l.innerHTML = '<li style="padding:15px; color:#b3b3b3; font-size:13px;">Loading...</li>');
     try {
         const res = await fetch('/api/my-playlists');
         const data = await res.json();
         lists.forEach(list => {
             list.innerHTML = '';
-            if (!data || data.length === 0) { list.innerHTML = '<li style="padding:15px; color:#777; font-size:12px;">No playlists found.</li>'; return; }
+            if (!data || data.length === 0) { list.innerHTML = '<li style="padding:15px; color:#777; font-size:13px;">No playlists found.</li>'; return; }
             data.forEach(pl => {
                 const imgUrl = pl.images && pl.images.length > 0 ? pl.images[0].url : null;
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item" style="display:flex; align-items:center; text-decoration:none; color:#b3b3b3; margin-bottom:10px; padding:8px; border-radius:8px; transition:0.2s; font-family: 'Montserrat', sans-serif;">
-                        <img src="${imgUrl}" class="playlist-cover ${!imgUrl ? 'placeholder' : ''}" style="width:40px; height:40px; border-radius:6px; object-fit:cover; margin-right:15px;">
-                        <div class="playlist-info" style="overflow:hidden;">
-                            <span class="playlist-name" style="font-size:13px; font-weight:700; color:white; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pl.name}</span>
-                            <span class="playlist-count" style="font-size:10px; color:#666;">${pl.tracks.total} Songs</span>
+                    <a href="${pl.external_urls.spotify}" target="_blank" class="playlist-item">
+                        <img src="${imgUrl}" class="playlist-cover ${!imgUrl ? 'placeholder' : ''}">
+                        <div class="playlist-info">
+                            <span class="playlist-name">${pl.name}</span>
+                            <span class="playlist-count">Playlist • ${pl.tracks.total} Songs</span>
                         </div>
                     </a>`;
                 list.appendChild(li);
             });
         });
-    } catch(e) { lists.forEach(l => l.innerHTML = '<li style="color:red;">Error</li>'); }
+    } catch(e) { lists.forEach(l => l.innerHTML = '<li style="color:red; padding:15px;">Error loading library.</li>'); }
 }
 
 async function loadUserProfile() {
@@ -197,12 +191,12 @@ async function loadStats() {
         const tracksList = document.getElementById('tracks-list');
         if(tracksList && data.tracks) {
             tracksList.innerHTML = '';
-            data.tracks.forEach((t,i) => { tracksList.innerHTML += `<a href="${t.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${t.album.images[0].url}" style="width:45px; height:45px; border-radius:5px; margin-right:12px;"><div class="info"><span class="title" style="color:white; font-weight:bold;">${t.name}</span><span class="artist" style="color:#b3b3b3; font-size:12px;">${t.artists[0].name}</span></div></a>`; });
+            data.tracks.forEach((t,i) => { tracksList.innerHTML += `<a href="${t.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${t.album.images[0].url}" style="width:45px; height:45px; border-radius:4px; margin-right:12px;"><div class="info"><span class="title">${t.name}</span><span class="artist">${t.artists[0].name}</span></div></a>`; });
         }
         const artistsList = document.getElementById('artists-list');
         if(artistsList && data.artists) {
              artistsList.innerHTML = '';
-             data.artists.forEach((a,i) => { artistsList.innerHTML += `<a href="${a.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${a.images[0].url}" style="width:45px; height:45px; border-radius:50%; margin-right:12px;"><div class="info"><span class="title" style="color:white; font-weight:bold;">${a.name}</span></div></a>`; });
+             data.artists.forEach((a,i) => { artistsList.innerHTML += `<a href="${a.external_urls.spotify}" target="_blank" class="list-item"><div class="rank">${i+1}</div><img src="${a.images[0].url}" style="width:45px; height:45px; border-radius:50%; margin-right:12px;"><div class="info"><span class="title">${a.name}</span></div></a>`; });
         }
         if(loadingEl) loadingEl.style.display = 'none';
         if(contentEl) contentEl.style.display = 'flex';
