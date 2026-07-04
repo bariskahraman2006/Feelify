@@ -68,7 +68,6 @@ async function createPlaylistWithGemini(client, feelingText) {
     const artistString = topArtists.slice(0, 10).join(', ') || "Popular artists";
     const genreString = Array.from(userGenres).slice(0, 10).join(', ') || "Mixed genres";
 
-    // AI'dan 25 şarkı istiyoruz ki harf hataları vs. elenince elimizde net 15 kalsın
     const prompt = `You are an expert music curator. 
     The user is feeling: "${feelingText}". 
     Their favorite artists are: ${artistString}. 
@@ -100,7 +99,6 @@ async function createPlaylistWithGemini(client, feelingText) {
     let savedTracksInfo = [];
 
     for (let item of aiSongs) {
-        // Spotify'da başarılı şekilde 15 şarkı bulduğunda aramayı sonlandır
         if (trackUris.length >= 15) break;
 
         try {
@@ -134,7 +132,6 @@ async function createPlaylistWithGemini(client, feelingText) {
     
     await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
 
-    // Oluşturulan Playlistin Kapağını Çekme
     let imageUrl = null;
     try {
         const plRes = await client.api.getPlaylist(playlist.body.id);
@@ -152,7 +149,8 @@ async function createPlaylistWithGemini(client, feelingText) {
     });
     await newPlaylist.save();
 
-    return { name: playlistName, url: playlist.body.external_urls.spotify, image: imageUrl };
+    // Frontend'e tracks bilgisini de gönderiyoruz
+    return { name: playlistName, url: playlist.body.external_urls.spotify, image: imageUrl, tracks: savedTracksInfo };
 }
 
 router.post('/generate-melody', async (req, res) => {
@@ -167,10 +165,16 @@ router.post('/generate-melody', async (req, res) => {
             try {
                 const lvbelTracks = await client.api.searchTracks('artist:Lvbel C5', { limit: 10 });
                 const trackUris = lvbelTracks.body.tracks.items.map(t => t.uri);
+                
+                // Track listesini ayarla
+                const tracksInfo = lvbelTracks.body.tracks.items.map(t => ({
+                    trackName: t.name, artistName: t.artists[0].name
+                }));
+                
                 const me = await client.api.getMe();
                 const playlist = await client.api.createPlaylist(me.body.id, { name: "Feelify: BABA GELDİ", description: "Lvbel C5 Special", public: true });
                 await client.api.addTracksToPlaylist(playlist.body.id, trackUris);
-                return res.json({ success: true, playlists: [{ name: "BABA GELDİ", url: playlist.body.external_urls.spotify, image: null }] });
+                return res.json({ success: true, playlists: [{ name: "BABA GELDİ", url: playlist.body.external_urls.spotify, image: null, tracks: tracksInfo }] });
             } catch (e) {}
         }
 
@@ -240,7 +244,6 @@ router.get('/emotion-analysis', async (req, res) => {
 });
 
 router.get('/me', async (req, res) => { const c=await getSpotifyClient(req,res); if(!c) return res.status(401).json({}); try{const m=await c.api.getMe(); res.json({username:m.body.display_name, image:m.body.images?.[0]?.url, email:m.body.email});}catch(e){res.json({});} });
-// --- TÜM PLAYLISTLERİ ÇEKME (Pagination Eklendi) ---
 router.get('/my-playlists', async (req, res) => { 
     const c = await getSpotifyClient(req, res); 
     if (!c) return res.json([]); 
@@ -250,12 +253,9 @@ router.get('/my-playlists', async (req, res) => {
         let limit = 50;
         let offset = 0;
         
-        // İlk 50 listeyi çek
         let data = await c.api.getUserPlaylists({ limit: limit, offset: offset });
         allPlaylists = allPlaylists.concat(data.body.items);
         
-        // Eğer 50'den fazla liste varsa (next url doluysa), bitene kadar çekmeye devam et
-        // Sonsuz döngüyü önlemek için maksimum 500 playlist sınırında durduruyoruz
         while (data.body.next && offset < 500) { 
             offset += limit;
             data = await c.api.getUserPlaylists({ limit: limit, offset: offset });

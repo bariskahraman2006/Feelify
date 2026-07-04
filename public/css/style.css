@@ -29,7 +29,7 @@ body {
 }
 
 .sidebar-left {
-    width: 320px; /* Genişletilmiş varsayılan boyut */
+    width: 320px; 
     min-width: 220px; 
     max-width: 600px; 
     background-color: var(--sidebar-bg);
@@ -38,7 +38,7 @@ body {
     flex-direction: column;
     border-radius: 8px; 
     border: none;
-    resize: horizontal; /* Sağa sola çekme özelliği */
+    resize: horizontal; 
     overflow: hidden; 
     flex-shrink: 0; 
 }
@@ -127,7 +127,8 @@ body {
 .go-back-button { align-self: flex-start; background: transparent; border: none; color: #b3b3b3; cursor: pointer; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
 .go-back-button:hover { color: white; }
 
-.ai-playlist-area { width: 100%; max-width: 700px; }
+/* DİKKAT: Genişlik 850px yapıldı ki sol kapak ve sağ liste rahat sığsın */
+.ai-playlist-area { width: 100%; max-width: 850px; }
 .ai-playlist-area h2 { font-size: 24px; margin-bottom: 25px; text-align: center; font-weight: 800; }
 .placeholder-card { background-color: transparent; padding: 30px; border-radius: 8px; text-align: center; color: var(--text-gray); border: 1px dashed var(--border-color); }
 
@@ -160,3 +161,35 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background-color: #444; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background-color: #777; }
+
+/* --- YENİ: SADE İKİ SÜTUNLU ŞARKI LİSTESİ TASARIMI --- */
+.result-layout {
+    display: flex; gap: 40px; background: transparent; padding: 0; width: 100%; align-items: stretch;
+}
+.result-left {
+    width: 250px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+}
+.result-right {
+    flex: 1; background: #181818; border-radius: 8px; padding: 20px; display: flex; flex-direction: column;
+}
+.track-list-container {
+    overflow-y: auto; max-height: 290px; padding-right: 10px;
+}
+.track-list-item {
+    display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #282828;
+}
+.track-list-item:last-child {
+    border-bottom: none;
+}
+.track-number {
+    color: #b3b3b3; font-size: 14px; width: 30px; font-weight: 600;
+}
+.track-details {
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.track-title {
+    color: white; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.track-artist {
+    color: #b3b3b3; font-size: 12px; margin-top: 3px;
+}

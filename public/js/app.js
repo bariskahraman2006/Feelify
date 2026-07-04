@@ -113,26 +113,53 @@ async function generateMelody() {
             let cardsHtml = '';
             
             data.playlists.forEach(playlist => {
-                // EĞER RESİM YOKSA SPOTIFY GİBİ MÜZİK İKONU GÖSTER
                 const imgHtml = playlist.image 
-                    ? `<img src="${playlist.image}" style="width: 100%; aspect-ratio: 1; border-radius: 6px; object-fit: cover; margin-bottom: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">` 
-                    : `<div style="width: 100%; aspect-ratio: 1; background: #282828; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"><i class="fas fa-music" style="font-size: 60px; color: #b3b3b3;"></i></div>`;
+                    ? `<img src="${playlist.image}" style="width: 100%; max-width: 250px; aspect-ratio: 1; border-radius: 8px; object-fit: cover; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">` 
+                    : `<div style="width: 100%; max-width: 250px; aspect-ratio: 1; background: #282828; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"><i class="fas fa-music" style="font-size: 60px; color: #b3b3b3;"></i></div>`;
 
-                // BİREBİR SPOTIFY KARTI TASARIMI
+                let tracksHtml = '';
+                if (playlist.tracks && playlist.tracks.length > 0) {
+                    playlist.tracks.forEach((track, index) => {
+                        tracksHtml += `
+                            <div class="track-list-item">
+                                <span class="track-number">${index + 1}</span>
+                                <div class="track-details">
+                                    <span class="track-title">${track.trackName}</span>
+                                    <span class="track-artist">${track.artistName}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    tracksHtml = `<p style="color:#b3b3b3; font-size:13px; padding: 10px;">Tracks couldn't be loaded.</p>`;
+                }
+
+                // "# Title" YERİNE DOĞRUDAN PLAYLIST ADI YAZDIRILDI
                 cardsHtml += `
-                    <div class="result-card" style="background: #181818; padding: 20px; border-radius: 8px; width: 220px; transition: background-color 0.3s;">
-                        ${imgHtml}
-                        <h3 style="margin: 0 0 5px 0; color: white; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;">${playlist.name}</h3>
-                        <p style="margin: 0 0 20px 0; color: #b3b3b3; font-size: 14px; font-weight: 500; text-align: left;">Playlist • Curated by AI</p>
+                    <div class="result-layout">
+                        <div class="result-left">
+                            ${imgHtml}
+                            <h3 style="margin: 0 0 8px 0; color: white; font-size: 22px; font-weight: 800; text-align: center;">${playlist.name}</h3>
+                            <p style="margin: 0 0 25px 0; color: #b3b3b3; font-size: 13px; font-weight: 500; text-align: center;">Playlist • Curated by AI</p>
+                            
+                            <a href="${playlist.url}" target="_blank" class="spotify-button" style="display: block; width: 100%; text-align: center; background: #1DB954; color: black; padding: 12px 0; border-radius: 500px; text-decoration: none; font-weight: 800; font-size: 14px; transition: 0.2s;">
+                                Play on Spotify
+                            </a>
+                        </div>
                         
-                        <a href="${playlist.url}" target="_blank" class="spotify-button" style="display: block; text-align: center; background: #1DB954; color: black; padding: 10px 0; border-radius: 500px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.2s;">
-                            Play on Spotify
-                        </a>
+                        <div class="result-right">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #282828; padding-bottom: 10px; margin-bottom: 10px;">
+                                <span style="color: #b3b3b3; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${playlist.name}</span>
+                            </div>
+                            <div class="track-list-container">
+                                ${tracksHtml}
+                            </div>
+                        </div>
                     </div>
                 `;
             });
 
-            resultDiv.innerHTML = `<div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 100%;">${cardsHtml}</div>`;
+            resultDiv.innerHTML = `<div style="display: flex; justify-content: center; width: 100%;">${cardsHtml}</div>`;
             setTimeout(loadSavedPlaylists, 2000);
 
         } else { resultDiv.innerHTML = `<p style="color:red">Error: ${data.error}</p>`; }
