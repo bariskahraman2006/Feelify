@@ -108,7 +108,21 @@ async function createPlaylistWithGemini(client, feelingText) {
             if (searchRes.body.tracks && searchRes.body.tracks.items.length > 0) {
                 const track = searchRes.body.tracks.items[0];
                 trackUris.push(track.uri);
-                savedTracksInfo.push({ trackName: track.name, artistName: track.artists[0].name, spotifyTrackId: track.id });
+                
+                // --- YENİ EKLENEN KISIM ---
+                // En küçük boyutlu resmi alıyoruz (genelde sonuncu) ki liste hızlı yüklensin
+                let albumCoverUrl = null;
+                if (track.album && track.album.images && track.album.images.length > 0) {
+                    albumCoverUrl = track.album.images[track.album.images.length - 1].url;
+                }
+
+                savedTracksInfo.push({ 
+                    trackName: track.name, 
+                    artistName: track.artists[0].name, 
+                    spotifyTrackId: track.id,
+                    albumCover: albumCoverUrl,
+                    durationMs: track.duration_ms
+                });
             }
         } catch (e) {}
     }
@@ -149,7 +163,6 @@ async function createPlaylistWithGemini(client, feelingText) {
     });
     await newPlaylist.save();
 
-    // Frontend'e tracks bilgisini de gönderiyoruz
     return { name: playlistName, url: playlist.body.external_urls.spotify, image: imageUrl, tracks: savedTracksInfo };
 }
 
@@ -166,10 +179,11 @@ router.post('/generate-melody', async (req, res) => {
                 const lvbelTracks = await client.api.searchTracks('artist:Lvbel C5', { limit: 10 });
                 const trackUris = lvbelTracks.body.tracks.items.map(t => t.uri);
                 
-                // Track listesini ayarla
-                const tracksInfo = lvbelTracks.body.tracks.items.map(t => ({
-                    trackName: t.name, artistName: t.artists[0].name
-                }));
+                const tracksInfo = lvbelTracks.body.tracks.items.map(t => {
+                    let coverUrl = null;
+                    if (t.album && t.album.images && t.album.images.length > 0) coverUrl = t.album.images[t.album.images.length - 1].url;
+                    return { trackName: t.name, artistName: t.artists[0].name, albumCover: coverUrl, durationMs: t.duration_ms };
+                });
                 
                 const me = await client.api.getMe();
                 const playlist = await client.api.createPlaylist(me.body.id, { name: "Feelify: BABA GELDİ", description: "Lvbel C5 Special", public: true });

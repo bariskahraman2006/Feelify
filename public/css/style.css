@@ -106,7 +106,9 @@ body {
     width: 100%; flex-grow: 1; height: 160px; padding: 18px;
     border: 1px solid var(--border-color); border-radius: 8px;
     background-color: #242424; color: var(--text-white);
-    font-size: 16px; resize: vertical; outline: none; transition: 0.2s;
+    font-size: 16px; 
+    resize: none; /* UZATILABİLME ÖZELLİĞİ BURADA KAPATILDI */
+    outline: none; transition: 0.2s;
 }
 #mood-prompt:focus { border-color: var(--text-gray); background-color: #2a2a2a; }
 #camera-button {
@@ -127,7 +129,6 @@ body {
 .go-back-button { align-self: flex-start; background: transparent; border: none; color: #b3b3b3; cursor: pointer; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
 .go-back-button:hover { color: white; }
 
-/* DİKKAT: Genişlik 850px yapıldı ki sol kapak ve sağ liste rahat sığsın */
 .ai-playlist-area { width: 100%; max-width: 850px; }
 .ai-playlist-area h2 { font-size: 24px; margin-bottom: 25px; text-align: center; font-weight: 800; }
 .placeholder-card { background-color: transparent; padding: 30px; border-radius: 8px; text-align: center; color: var(--text-gray); border: 1px dashed var(--border-color); }

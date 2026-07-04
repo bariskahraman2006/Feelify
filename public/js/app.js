@@ -92,6 +92,13 @@ function setupModal() {
     }
 }
 
+// Milisaniyeyi Dakika:Saniye Formatına Çeviren Fonksiyon
+function formatDuration(ms) {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(0);
+    return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+}
+
 async function generateMelody() {
     const input = document.getElementById('mood-prompt');
     const resultDiv = document.getElementById('playlist-results');
@@ -120,13 +127,24 @@ async function generateMelody() {
                 let tracksHtml = '';
                 if (playlist.tracks && playlist.tracks.length > 0) {
                     playlist.tracks.forEach((track, index) => {
+                        
+                        // Albüm Kapağı HTML'i
+                        const miniCoverHtml = track.albumCover 
+                            ? `<img src="${track.albumCover}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover; margin: 0 12px 0 8px; flex-shrink: 0;">` 
+                            : `<div style="width: 40px; height: 40px; border-radius: 4px; background: #282828; margin: 0 12px 0 8px; display:flex; align-items:center; justify-content:center; flex-shrink: 0;"><i class="fas fa-music" style="font-size: 12px; color: #b3b3b3;"></i></div>`;
+                        
+                        // Süre HTML'i
+                        const durationStr = track.durationMs ? formatDuration(track.durationMs) : '';
+
                         tracksHtml += `
-                            <div class="track-list-item">
-                                <span class="track-number">${index + 1}</span>
-                                <div class="track-details">
-                                    <span class="track-title">${track.trackName}</span>
-                                    <span class="track-artist">${track.artistName}</span>
+                            <div class="track-list-item" style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #282828;">
+                                <span class="track-number" style="color: #b3b3b3; font-size: 14px; width: 20px; font-weight: 600; text-align: right;">${index + 1}</span>
+                                ${miniCoverHtml}
+                                <div class="track-details" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+                                    <span class="track-title" style="color: white; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${track.trackName}</span>
+                                    <span class="track-artist" style="color: #b3b3b3; font-size: 12px; margin-top: 3px;">${track.artistName}</span>
                                 </div>
+                                <span style="color: #b3b3b3; font-size: 13px; font-weight: 500; margin-left: 15px;">${durationStr}</span>
                             </div>
                         `;
                     });
@@ -134,7 +152,6 @@ async function generateMelody() {
                     tracksHtml = `<p style="color:#b3b3b3; font-size:13px; padding: 10px;">Tracks couldn't be loaded.</p>`;
                 }
 
-                // "# Title" YERİNE DOĞRUDAN PLAYLIST ADI YAZDIRILDI
                 cardsHtml += `
                     <div class="result-layout">
                         <div class="result-left">
@@ -148,8 +165,9 @@ async function generateMelody() {
                         </div>
                         
                         <div class="result-right">
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #282828; padding-bottom: 10px; margin-bottom: 10px;">
-                                <span style="color: #b3b3b3; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">${playlist.name}</span>
+                            <div style="display: flex; align-items: center; border-bottom: 1px solid #282828; padding-bottom: 10px; margin-bottom: 10px;">
+                                <span style="color: #b3b3b3; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; flex: 1;">${playlist.name}</span>
+                                <i class="far fa-clock" style="color: #b3b3b3; font-size: 13px; margin-right: 22px;"></i>
                             </div>
                             <div class="track-list-container">
                                 ${tracksHtml}
