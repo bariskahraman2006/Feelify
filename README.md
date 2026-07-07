@@ -5,7 +5,7 @@ An AI-powered music discovery platform that analyzes your current mood, favorite
 ## 🚀 Showcase Video
 Click the image below to watch how Feelify works:
 
-[![Feelify Showcase Video](https://img.youtube.com/vi/SWKSZuq6E44/maxresdefault.jpg)](https://youtu.be/SWKSZuq6E44)
+[![Feelify Showcase Video](https://markdown-videos-api.jorgenkh.no/youtube/SWKSZuq6E44)](https://youtu.be/SWKSZuq6E44)
 
 > **Note:** Due to Spotify's current Developer API policies (2026 Developer Quota Extension limits), Feelify operates in a Closed Beta Environment. This video showcases the fully functional features.
 
